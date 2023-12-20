@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="http://localhost:4000/css/index.css" type="text/css" rel="stylesheet"/>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src = "https://cdn.rawgit.com/eligrey/FileSaver.js/5ed507ef8aa53d8ecfea96d96bc7214cd2476fd2/FileSaver.min.js"></script>
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class = "box" >
+        <div class = "chat">
+        <div id="msg">
+            <div class="notification-container" id="notification-container">
+            <p></p>
+            </div>
+        </div>
+
+        <div class="send">
+        <form id = "chatform" onsubmit="return false">
+            <div style="display: inline-block;"><input type="text" id="input_box" contenteditable="true" autocomplete="off"></div>
+            <input type = "submit" id="sendmsg"  class="btn btn-warning btn-sm" value="Send">
+        
+        </form>
+        </div>
+    </div>
+    </div>
+</body>
+<script type="text/javascript" src="http://localhost:4000/js/index.js"></script>
+</html>

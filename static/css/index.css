@@ -1,0 +1,148 @@
+@charset "utf-8";
+
+#msg{
+  border: 1px white solid;
+  width: 400px;
+  height: 650px;
+  background-color :	#9bbbd4;
+  font-size : 20px;
+  overflow: auto;
+  margin: auto;
+  color : white;
+}
+.msgLine {
+  margin: 15px;
+}
+.me{
+  border: 1px solid #f5bc42;
+  background: #f5bc42;
+  padding: 2px 5px;
+  color : black;
+  font-family : "a타이틀고딕2";
+  font-size : 0.9em;
+  border-radius: 10px;
+}
+.msgBox {
+  border: 1px solid white;
+  background: white;
+  padding: 2px 5px;
+  color : black;
+  font-family : "a타이틀고딕2";
+  font-size : 0.9em;
+  border-radius: 10px;
+}
+input[type=text]{
+  border: 1px #F2F2F2 solid;
+  background-color : #E6E6E6;
+  width: 280px;
+  height : 33px;
+  overflow: auto;
+  margin : 8px;
+  padding-left: 5px;
+  padding-top: 8px;
+}
+
+.send {
+   width: 400px;
+   height : 50px;
+   margin: auto;
+   background-color : white;
+}
+.send > form {
+  width : 400px;
+  height : 50px;
+  display:inline-block;
+  position : absolute;
+}
+#sendmsg{
+  right : 10px;
+  top : 10px;
+  position : absolute;
+  display:inline-block;
+}
+
+#menu {
+   display : inline-block;
+}
+.button {
+   margin-left : 5px;
+   display : block;
+   border : 5px;
+   border-radius : 5px;
+   font-size : 0.9em;
+   margin-top : 7px;
+}
+
+.navigator{
+  border: 1px #FFFFFF solid;
+  cursor: pointer;
+  margin: 1px;
+  width: 32px;
+  height: 32px
+}
+
+.navigator:hover{
+  border: 1px #CECEF6 solid;
+  cursor: pointer;
+  margin: 1px;
+  width: 32px;
+  height: 32px
+}
+
+.btn-warning{
+  color : #1f1c1c;
+  font-family: "a타이틀고딕5";
+}
+#user_text{
+  font-size: 0.9em;
+  align-items : center;
+}
+
+#spantxt{
+  text-align:center;
+}
+
+#date{
+  top:90%;
+  left:55%;
+}
+/* Scroll Bar */
+#spandate {
+  font-size:0.6em;
+}
+/*글자 수 제한 경고창 */
+.notification-container {   
+  display: none;
+  position: absolute;
+  font-size: .8em;
+  background: rgba(0,0,0,.3);
+  border-radius: 10px;
+  padding: 20px 20px;
+  margin: auto;
+  margin-top: 300px;
+  margin-left: 100px;
+  
+}
+
+.notification-container.show {
+  display: block;
+}
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
