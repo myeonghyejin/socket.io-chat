@@ -1,6 +1,3 @@
-let emoji_id;
-let emoji_info = new Object(); 
-let pick_emoji = new Object();
 let lo_ten;
 let lo_thirty;
 let font;
@@ -9,11 +6,11 @@ let exist10;
 let exist30; 
 let tenchk;
 let thirtychk;
-let popupCheck = false;
 
 let chatView = document.getElementById('msg');
 let chatForm = document.getElementById('chatform');
-let roomname = "채팅방 1"
+
+let roomId = "채팅방 1"
 
 let socket = io();
 socket.on('news', function (data) {
@@ -24,10 +21,10 @@ socket.on('news', function (data) {
 });
 
 // socket.on 함수로 서버에서 전달하는 신호를 수신
-socket.on('usercount', (count) => {
-    let userCounter = document.getElementById('usercount');
-    userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
-});
+// socket.on('usercount', (count) => {
+//     let userCounter = document.getElementById('usercount');
+//     userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
+// });
 
 chatForm.addEventListener('submit', function() {
     let msgText = $('#input_box');
@@ -37,7 +34,7 @@ chatForm.addEventListener('submit', function() {
     } else {
         // socket.emit으로 서버에 신호를 전달
         // 특정 룸에 메시지를 보내기 위해 룸의 이름을 같이 전송
-        socket.emit('SEND', msgText.val(), roomname);
+        socket.emit('SEND', msgText.val(), roomId);
         let msgLine = $('<div class="msgLine">');
         let msgBox = $('<div class="me">');
  
@@ -57,10 +54,10 @@ socket.on('RECEIVE', function(msg) {
     let msgLine = $('<div class="msgLine">');
     let msgBox = $('<div class="msgBox">');
 
-    let receivedRoom = roomname;
+    let receivedRoom = roomId;
     let receivedMessage = msg;
 
-    if (receivedRoom === roomname) {
+    if (receivedRoom === roomId) {
 
         console.log("nnnn")
         msgBox.append(receivedMessage);
@@ -75,7 +72,7 @@ socket.on('RECEIVE', function(msg) {
 
 // 접속한 룸이 바뀌었을 때
 socket.on('roomChanged', (joinedRoom) => { 
-    roomname = joinedRoom;
+    roomId = joinedRoom;
     document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
 });
 
@@ -84,10 +81,10 @@ function joinRoom() { // 방 접속 버튼 클릭 시
     let roomToJoin = roomOptions.options[roomOptions.selectedIndex].value;
 
     // 서버에 룸 전환 신호를 발신
-    socket.emit('joinRoom', roomname, roomToJoin);
+    socket.emit('joinRoom', roomId, roomToJoin);
 }
 
-//오늘 날짜 구하는 함수
+// 오늘 날짜 구하는 함수
 function show_date(){
     let today = new Date();
     let year = today.getFullYear();
@@ -96,7 +93,7 @@ function show_date(){
     $("#spandate").html(year+"."+month+"."+date);
 }
 
-//위치 보여주는 함수
+// 위치 보여주는 함수
 function show_sampletxt(pick_emoji){
     $("#sample10").html('');
     $("#sample30").html('');

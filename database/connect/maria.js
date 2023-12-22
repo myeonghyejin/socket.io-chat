@@ -1,6 +1,6 @@
 const maria = require('mysql');
 
-const conn = maria.createConnection({
+const connection = maria.createConnection({
     host: 'localhost',
     port: 3306,
     user: 'root',
@@ -8,4 +8,4 @@ const conn = maria.createConnection({
     database: 'chat'
 });
 
-module.exports = conn;
+module.exports = connection;
