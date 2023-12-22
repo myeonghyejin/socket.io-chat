@@ -10,7 +10,7 @@ let thirtychk;
 let chatView = document.getElementById('msg');
 let chatForm = document.getElementById('chatform');
 
-let roomId = "채팅방 1"
+let roomID = "채팅방 1"
 
 let socket = io();
 socket.on('news', function (data) {
@@ -26,27 +26,27 @@ socket.on('news', function (data) {
 //     userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
 // });
 
-chatForm.addEventListener('submit', function() {
+chatForm.addEventListener('submit', function(event) {
+    // event.preventDefault(); // 기본 이벤트 제거
     let msgText = $('#input_box');
-  
+
     if (msgText.val() == '') {
         return;
     } else {
-        // socket.emit으로 서버에 신호를 전달
-        // 특정 룸에 메시지를 보내기 위해 룸의 이름을 같이 전송
-        socket.emit('SEND', msgText.val(), roomId);
+        // 클라이언트에서 메시지 전송 신호를 서버로 발송
+        socket.emit('SEND', msgText.val(), roomID);
         let msgLine = $('<div class="msgLine">');
         let msgBox = $('<div class="me">');
- 
+
         msgBox.append(msgText.val());
         msgBox.css('display', 'inline-block');
 
         msgLine.css('text-align', 'right');
         msgLine.append(msgBox);
- 
+
         $('#msg').append(msgLine);
         msgText.val('');
-        chatView.scrollTop = chatView.scrollHeight;joinRoom
+        chatView.scrollTop = chatView.scrollHeight;
     }
 });
 
@@ -54,12 +54,10 @@ socket.on('RECEIVE', function(msg) {
     let msgLine = $('<div class="msgLine">');
     let msgBox = $('<div class="msgBox">');
 
-    let receivedRoom = roomId;
+    let receivedRoom = roomID;
     let receivedMessage = msg;
 
-    if (receivedRoom === roomId) {
-
-        console.log("nnnn")
+    if (receivedRoom === roomID) {
         msgBox.append(receivedMessage);
         msgBox.css('display', 'inline-block');
 
@@ -70,19 +68,20 @@ socket.on('RECEIVE', function(msg) {
     }
 });
 
-// 접속한 룸이 바뀌었을 때
-socket.on('roomChanged', (joinedRoom) => { 
-    roomId = joinedRoom;
-    document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
-});
-
-function joinRoom() { // 방 접속 버튼 클릭 시
+// 룸 접속 버튼 클릭 시
+function joinRoom() {
     let roomOptions = document.getElementById("roomoptions");
     let roomToJoin = roomOptions.options[roomOptions.selectedIndex].value;
 
-    // 서버에 룸 전환 신호를 발신
-    socket.emit('joinRoom', roomId, roomToJoin);
+    // 클라이언트에서 방 접속 신호를 서버로 발송
+    socket.emit('joinRoom', roomToJoin);
 }
+
+// 접속한 룸이 바뀌었을 때
+socket.on('roomChanged', (joinedRoom) => {
+    roomID = joinedRoom;
+    document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
+});
 
 // 오늘 날짜 구하는 함수
 function show_date(){

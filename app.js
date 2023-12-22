@@ -13,15 +13,7 @@ const io = socket(server);
 
 // DB Connect
 const maria = require('mysql');
-
-const connection = maria.createConnection({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: '1234',
-    database: 'chat'
-});
-
+const connection = require('./database/connect/maria')
 connection.connect();
 
 // test.js
@@ -35,28 +27,64 @@ server.listen(4000, function() {
 
 app.use("/test", test);
 
-io.on('connection', function(socket) { // 연결이 들어오면 실행되는 이벤트
-    console.log('소켓으로 접속됨.');
+// 룸ID 생성 함수
+function generateRoomID(userID1, userID2) {
+    const sortedIDs = [userID1, userID2].sort().join('-'); // 사용자 ID 정렬하여 결합
+    return sortedIDs; // 룸 ID 반환
+}
 
-    // socket 변수에는 실행 시점에 연결한 상대와 연결된 소켓의 객체가 들어있다.
-    
-    // socket.emit으로 현재 연결한 상대에게 신호를 보낼 수 있다.
-    socket.emit('usercount', io.engine.clientsCount);
+// 채팅방 생성 함수
+function createChatRoom(roomID) {
+    connection.query(
+        "INSERT IGNORE INTO chat_room (room_id, created_at) VALUES (?, now())",
+        [roomID],
+        (error, results, fields) => {
+            if (error) {
+                console.error('Error creating chat room:', error);
+                // 에러 핸들링 또는 적절한 조치
+            } else {
+                console.log('Chat room created successfully');
+            }
+        }
+    );
+}
 
-    // 기본적으로 채팅방 하나에 접속시켜 준다.
-    socket.join("채팅방 1");
+io.on('connection', (socket) => {
+    /* 룸 접속 */
+    socket.on('joinRoom', (roomToJoin) => {
+        const currentRooms = Object.keys(socket.rooms);
+        currentRooms.forEach((room) => {
+            if (room !== socket.id) {
+                socket.leave(room); // 모든 룸에서 나가고
+            }
+        });
 
-    socket.on('SEND', function(msg, roomId) {
+        socket.join('채팅방 1');
+
+        //     // const currentUserID = 'user123'; // 현재 사용자의 ID
+        //     // const roomID = generateRoomID(currentUserID, receiverUserId); // 룸 ID 생성
+
+        //     socket.join(roomToJoin); // 선택한 룸에 조인
+
+        console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
+        // 룸을 성공적으로 전환했다는 신호 발송
+        io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
+    });
+
+    /* 메시지 전송 */
+    socket.on('SEND', function(msg, roomID) {
         // msg에는 클라이언트에서 전송한 매개변수가 들어온다. 이러한 매개변수의 수에는 제한이 없다.
         console.log('Message received: ' + msg);
         
-        // socket.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
-        socket.to(roomId).emit('RECEIVE', msg, roomId);
+        createChatRoom(roomID);
 
+        // socket.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
+        socket.to(roomID).emit('RECEIVE', msg, roomID);
+    
         // DB에 INSERT (parameterized query 사용)
         connection.query(
-            "INSERT INTO chat_message (name, message, created_at) VALUES (?, ?, NOW())",
-            ['User', msg],
+            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at) VALUES (?, ?, ?, ?, NOW())",
+            [roomID, 'sender', 'receiver', msg],
             (error, results, fields) => {
                 if (error) {
                     // INSERT 중 에러 발생 시 처리
@@ -69,7 +97,8 @@ io.on('connection', function(socket) { // 연결이 들어오면 실행되는 �
             }
         )
     });
-
+    
+    /* 이미지 전송 */
     socket.on('image', (data)=>{
         socketList.forEach(function(item, i) {
             console.log(item.id);
@@ -78,18 +107,21 @@ io.on('connection', function(socket) { // 연결이 들어오면 실행되는 �
             }
         }); 
     })
-
-    // 룸 전환 신호
-    socket.on('joinRoom', (roomId, roomToJoin) => {
-        socket.leave(roomId); // 기존의 룸을 나가고
-        socket.join(roomToJoin);  // 들어갈 룸에 들어간다.
-
-    // 룸을 성공적으로 전환했다는 신호 발송
-    socket.emit('roomChanged', roomToJoin);
+    
+    /* 룸 전환 신호 */
+    socket.on('joinRoom', (roomToJoin) => {
+        const currentRooms = Object.keys(socket.rooms);
+        currentRooms.forEach((room) => {
+            if (room !== socket.id) {
+                socket.leave(room); // 모든 룸에서 나가고
+            }
+        });
+    
+        socket.join(roomToJoin); // 선택한 룸에 조인
+    
+        console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
+        // 룸을 성공적으로 전환했다는 신호 발송
+        io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
     });
 
-    // socket.on("disconnect", function() {
-    //     socketList.splice(socketList.indexOf(socket), 1);
-    //     console.log("/chat 클라이언트 접속이 해제됨.");
-    // });
-})
+});
