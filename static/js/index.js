@@ -35,12 +35,15 @@ chatForm.addEventListener('submit', function() {
     if (msgText.val() == '') {
         return;
     } else {
+        // socket.emit으로 서버에 신호를 전달
+        // 특정 룸에 메시지를 보내기 위해 룸의 이름을 같이 전송
         socket.emit('SEND', msgText.val(), roomname);
         let msgLine = $('<div class="msgLine">');
         let msgBox = $('<div class="me">');
  
         msgBox.append(msgText.val());
         msgBox.css('display', 'inline-block');
+
         msgLine.css('text-align', 'right');
         msgLine.append(msgBox);
  
@@ -50,28 +53,33 @@ chatForm.addEventListener('submit', function() {
     }
 });
 
-socket.on('SEND', function(msg) {
+socket.on('RECEIVE', function(msg) {
     let msgLine = $('<div class="msgLine">');
     let msgBox = $('<div class="msgBox">');
 
-    msgBox.append(msg);
-    msgBox.css('display', 'inline-block');
+    let receivedRoom = roomname;
+    let receivedMessage = msg;
 
-    msgLine.append(msgBox);
-    $('#msg').append(msgLine);
+    if (receivedRoom === roomname) {
 
-    chatView.scrollTop = chatView.scrollHeight;
+        console.log("nnnn")
+        msgBox.append(receivedMessage);
+        msgBox.css('display', 'inline-block');
+
+        msgLine.append(msgBox);
+        $('#msg').append(msgLine);
+
+        chatView.scrollTop = chatView.scrollHeight;
+    }
 });
 
 // 접속한 룸이 바뀌었을 때
 socket.on('roomChanged', (joinedRoom) => { 
     roomname = joinedRoom;
-    let messageList = document.getElementById('chat');
     document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
-    messageList.appendChild(messageTag);
 });
 
-function joinRoom() { // 방 접속 버튼 클릭시
+function joinRoom() { // 방 접속 버튼 클릭 시
     let roomOptions = document.getElementById("roomoptions");
     let roomToJoin = roomOptions.options[roomOptions.selectedIndex].value;
 

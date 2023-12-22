@@ -40,8 +40,8 @@ io.on('connection', function(socket) { // 연결이 들어오면 실행되는 �
         // msg에는 클라이언트에서 전송한 매개변수가 들어온다. 이러한 매개변수의 수에는 제한이 없다.
         console.log('Message received: ' + msg);
         
-        // io.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
-        io.to(roomname).emit('SEND', msg);
+        // socket.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
+        socket.to(roomname).emit('RECEIVE', msg, roomname);
     });
 
     socket.on('image', (data)=>{
