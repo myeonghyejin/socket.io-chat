@@ -11,6 +11,10 @@ let tenchk;
 let thirtychk;
 let popupCheck = false;
 
+let chatView = document.getElementById('msg');
+let chatForm = document.getElementById('chatform');
+let roomname = "채팅방 1"
+
 let socket = io();
 socket.on('news', function (data) {
     console.log(data);
@@ -18,6 +22,62 @@ socket.on('news', function (data) {
         my: 'data'
     });
 });
+
+// socket.on 함수로 서버에서 전달하는 신호를 수신
+socket.on('usercount', (count) => {
+    let userCounter = document.getElementById('usercount');
+    userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
+});
+
+chatForm.addEventListener('submit', function() {
+    let msgText = $('#input_box');
+  
+    if (msgText.val() == '') {
+        return;
+    } else {
+        socket.emit('SEND', msgText.val(), roomname);
+        let msgLine = $('<div class="msgLine">');
+        let msgBox = $('<div class="me">');
+ 
+        msgBox.append(msgText.val());
+        msgBox.css('display', 'inline-block');
+        msgLine.css('text-align', 'right');
+        msgLine.append(msgBox);
+ 
+        $('#msg').append(msgLine);
+        msgText.val('');
+        chatView.scrollTop = chatView.scrollHeight;joinRoom
+    }
+});
+
+socket.on('SEND', function(msg) {
+    let msgLine = $('<div class="msgLine">');
+    let msgBox = $('<div class="msgBox">');
+
+    msgBox.append(msg);
+    msgBox.css('display', 'inline-block');
+
+    msgLine.append(msgBox);
+    $('#msg').append(msgLine);
+
+    chatView.scrollTop = chatView.scrollHeight;
+});
+
+// 접속한 룸이 바뀌었을 때
+socket.on('roomChanged', (joinedRoom) => { 
+    roomname = joinedRoom;
+    let messageList = document.getElementById('chat');
+    document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
+    messageList.appendChild(messageTag);
+});
+
+function joinRoom() { // 방 접속 버튼 클릭시
+    let roomOptions = document.getElementById("roomoptions");
+    let roomToJoin = roomOptions.options[roomOptions.selectedIndex].value;
+
+    // 서버에 룸 전환 신호를 발신
+    socket.emit('joinRoom', roomname, roomToJoin);
+}
 
 //오늘 날짜 구하는 함수
 function show_date(){
@@ -217,47 +277,12 @@ function add30(str,lo_thirty){
         $('#date').css('left', "95px");
     }
 }
-let chatView = document.getElementById('msg');
-let chatForm = document.getElementById('chatform');
-
-chatForm.addEventListener('submit', function() {
-    let msgText = $('#input_box');
-  
-    if (msgText.val() == '') {
-        return;
-    } else {
-        socket.emit('SEND', msgText.val());
-        let msgLine = $('<div class="msgLine">');
-        let msgBox = $('<div class="me">');
- 
-        msgBox.append(msgText.val());
-        msgBox.css('display', 'inline-block');
-        msgLine.css('text-align', 'right');
-        msgLine.append(msgBox);
- 
-        $('#msg').append(msgLine);
-        msgText.val('');
-        chatView.scrollTop = chatView.scrollHeight;
-    }
-  });
-  socket.on('SEND', function(msg) {
-    let msgLine = $('<div class="msgLine">');
-    let msgBox = $('<div class="msgBox">');
-
-    msgBox.append(msg);
-    msgBox.css('display', 'inline-block');
-
-    msgLine.append(msgBox);
-    $('#msg').append(msgLine);
-
-    chatView.scrollTop = chatView.scrollHeight;
-});
 
 
+// 이미지 보내는 함수
 let imgWidth;
 let imgHeight;
 
-//이미지 보내는 함수
 $(function(){          
   $("#save").click(function() {
     let spnwidth = $("#spantxt").width();

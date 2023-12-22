@@ -13,22 +13,25 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <div class = "box" >
+    <select id="roomoptions" onchange="joinRoom()">
+        <option value="채팅방 1" selected>채팅방 1</option>
+        <option value="채팅방 2">채팅방 2</option>
+    </select>
+    <div class = "box">
         <div class = "chat">
-        <div id="msg">
-            <div class="notification-container" id="notification-container">
-            <p></p>
+            <div id="usercount"></div>
+            <div id="msg">
+                <div class="notification-container" id="notification-container">
+                <p></p>
+                </div>
+            </div>
+            <div class="send">
+            <form id = "chatform" onsubmit="return false">
+                <div style="display: inline-block;"><input type="text" id="input_box" contenteditable="true" autocomplete="off"></div>
+                <input type = "submit" id="sendmsg"  class="btn btn-warning btn-sm" value="Send">
+            </form>
             </div>
         </div>
-
-        <div class="send">
-        <form id = "chatform" onsubmit="return false">
-            <div style="display: inline-block;"><input type="text" id="input_box" contenteditable="true" autocomplete="off"></div>
-            <input type = "submit" id="sendmsg"  class="btn btn-warning btn-sm" value="Send">
-        
-        </form>
-        </div>
-    </div>
     </div>
 </body>
 <script type="text/javascript" src="http://localhost:4000/js/index.js"></script>
