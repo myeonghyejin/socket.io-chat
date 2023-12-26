@@ -28,6 +28,16 @@ socket.on('news', function (data) {
 // });
 
 document.addEventListener('DOMContentLoaded', function() {
+    const roomOptions = document.getElementById("roomoptions");
+    const defaultRoom = '채팅방 1'; // 초기에 선택될 방
+
+    // 초기 선택 설정
+    roomOptions.value = defaultRoom;
+
+    // 초기 방 접속
+    joinRoom(defaultRoom);
+
+    // 아이디 입력
     const askUserID = () => {
         userID = window.prompt("아이디를 입력하세요.");
         console.log(userID);
@@ -112,10 +122,7 @@ socket.on('chatMessage', (chatMessage) => {
 });
 
 // 룸 접속 버튼 클릭 시
-function joinRoom() {
-    let roomOptions = document.getElementById("roomoptions");
-    let roomToJoin = roomOptions.options[roomOptions.selectedIndex].value;
-
+function joinRoom(roomToJoin) {
     // 클라이언트에서 방 접속 신호를 서버로 발송
     socket.emit('joinRoom', roomToJoin);
 }
