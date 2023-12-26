@@ -50,6 +50,10 @@ function createChatRoom(roomID) {
 }
 
 io.on('connection', (socket) => {
+    socket.on("login", async (userID)=>{
+        console.log(userID);
+    })
+
     /* 룸 접속 */
     socket.on('joinRoom', (roomToJoin) => {
         const currentRooms = Object.keys(socket.rooms);
@@ -69,11 +73,23 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
         // 룸을 성공적으로 전환했다는 신호 발송
         io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
+
+        // 새로운 소켓이 연결될 때 DB에서 데이터를 가져와서 클라이언트에게 전송
+        connection.query("select message_id, message, sender, created_at from chat_message where room_id = ? order by message_id asc", [roomToJoin], (error, results, fields) => {
+            if (error) {
+                // 에러 처리
+                console.error('Error retrieving messages from DB:', error);
+            } else {
+                // 클라이언트에 데이터 전송
+                socket.emit('chatMessage', results); // 가져온 메시지 전송
+            }
+        });
     });
 
     /* 메시지 전송 */
-    socket.on('SEND', function(msg, roomID) {
-        // msg에는 클라이언트에서 전송한 매개변수가 들어온다. 이러한 매개변수의 수에는 제한이 없다.
+    socket.on('SEND', function(messageData) {
+        const { msg, roomID, sender } = messageData;
+
         console.log('Message received: ' + msg);
         
         createChatRoom(roomID);
@@ -83,8 +99,8 @@ io.on('connection', (socket) => {
     
         // DB에 INSERT (parameterized query 사용)
         connection.query(
-            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at) VALUES (?, ?, ?, ?, NOW())",
-            [roomID, 'sender', 'receiver', msg],
+            "INSERT INTO chat_message (room_id, sender, message, created_at) VALUES (?, ?, ?, NOW())",
+            [roomID, sender, msg],
             (error, results, fields) => {
                 if (error) {
                     // INSERT 중 에러 발생 시 처리

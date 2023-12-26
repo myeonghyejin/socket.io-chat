@@ -10,7 +10,8 @@ let thirtychk;
 let chatView = document.getElementById('msg');
 let chatForm = document.getElementById('chatform');
 
-let roomID = "채팅방 1"
+let userID;
+let roomID;
 
 let socket = io();
 socket.on('news', function (data) {
@@ -26,6 +27,19 @@ socket.on('news', function (data) {
 //     userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
 // });
 
+document.addEventListener('DOMContentLoaded', function() {
+    const askUserID = () => {
+        userID = window.prompt("아이디를 입력하세요.");
+        console.log(userID);
+
+        socket.emit("login", userID, (res) => {
+            console.log(res);
+        });
+    };
+
+    askUserID();
+});
+
 chatForm.addEventListener('submit', function(event) {
     // event.preventDefault(); // 기본 이벤트 제거
     let msgText = $('#input_box');
@@ -34,7 +48,14 @@ chatForm.addEventListener('submit', function(event) {
         return;
     } else {
         // 클라이언트에서 메시지 전송 신호를 서버로 발송
-        socket.emit('SEND', msgText.val(), roomID);
+        const messageData = {
+            msg: msgText.val(),
+            roomID: roomID,
+            sender: userID
+        };
+
+        socket.emit('SEND', messageData);
+
         let msgLine = $('<div class="msgLine">');
         let msgBox = $('<div class="me">');
 
@@ -66,6 +87,28 @@ socket.on('RECEIVE', function(msg) {
 
         chatView.scrollTop = chatView.scrollHeight;
     }
+});
+
+
+// 클라이언트 측 소켓 이벤트 처리
+socket.on('chatMessage', (chatMessage) => {
+    const msgContainer = $('#msg');
+    
+    chatMessage.forEach((msg) => {
+        const msgLine = $('<div>').addClass('msgLine');
+        let msgBox = $('<div>').addClass('msgBox').text(msg.message); // 메시지 내용 추가
+
+        if (msg.sender === userID) {
+            msgBox = $('<div>').addClass('me').text(msg.message); // 메시지 내용 추가
+            msgBox.css('display', 'inline-block');
+            msgLine.css('text-align', 'right');
+        } else {
+            msgBox.css('display', 'inline-block');
+        }
+            
+        msgLine.append(msgBox);
+        msgContainer.append(msgLine);
+    });
 });
 
 // 룸 접속 버튼 클릭 시
