@@ -10,7 +10,8 @@ let thirtychk;
 let chatView = document.getElementById('msg');
 let chatForm = document.getElementById('chatform');
 
-let userID;
+let senderID;
+let receiverID;
 let roomID;
 
 let socket = io();
@@ -28,21 +29,16 @@ socket.on('news', function (data) {
 // });
 
 document.addEventListener('DOMContentLoaded', function() {
-    const roomOptions = document.getElementById("roomoptions");
-    const defaultRoom = '채팅방 1'; // 초기에 선택될 방
-
-    // 초기 선택 설정
-    roomOptions.value = defaultRoom;
-
-    // 초기 방 접속
-    joinRoom(defaultRoom);
-
     // 아이디 입력
     const askUserID = () => {
-        userID = window.prompt("아이디를 입력하세요.");
-        console.log(userID);
+        senderID = window.prompt("수신자 아이디를 입력하세요.");
+        console.log(senderID);
 
-        socket.emit("login", userID, (res) => {
+        receiverID = window.prompt("송신자 아이디를 입력하세요.");
+        console.log(receiverID);
+
+        // 아이디를 서버로 전달
+        socket.emit("LOGIN", senderID, receiverID, (res) => {
             console.log(res);
         });
     };
@@ -61,7 +57,8 @@ chatForm.addEventListener('submit', function(event) {
         const messageData = {
             msg: msgText.val(),
             roomID: roomID,
-            sender: userID
+            sender: senderID,
+            receiver: receiverID
         };
 
         socket.emit('SEND', messageData);
@@ -101,14 +98,14 @@ socket.on('RECEIVE', function(msg) {
 
 
 // 클라이언트 측 소켓 이벤트 처리
-socket.on('chatMessage', (chatMessage) => {
+socket.on('GET', (chatMessage) => {
     const msgContainer = $('#msg');
     
     chatMessage.forEach((msg) => {
         const msgLine = $('<div>').addClass('msgLine');
         let msgBox = $('<div>').addClass('msgBox').text(msg.message); // 메시지 내용 추가
 
-        if (msg.sender === userID) {
+        if (msg.sender === senderID) {
             msgBox = $('<div>').addClass('me').text(msg.message); // 메시지 내용 추가
             msgBox.css('display', 'inline-block');
             msgLine.css('text-align', 'right');
@@ -122,9 +119,9 @@ socket.on('chatMessage', (chatMessage) => {
 });
 
 // 룸 접속 버튼 클릭 시
-function joinRoom(roomToJoin) {
+function joinRoom(roomID) {
     // 클라이언트에서 방 접속 신호를 서버로 발송
-    socket.emit('joinRoom', roomToJoin);
+    socket.emit('joinRoom', roomID);
 }
 
 // 접속한 룸이 바뀌었을 때

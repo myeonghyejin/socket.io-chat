@@ -12,7 +12,6 @@ const server = http.createServer(app);
 const io = socket(server);
 
 // DB Connect
-const maria = require('mysql');
 const connection = require('./database/connect/maria')
 connection.connect();
 
@@ -27,9 +26,9 @@ server.listen(4000, function() {
 
 app.use("/test", test);
 
-// 룸ID 생성 함수
-function generateRoomID(userID1, userID2) {
-    const sortedIDs = [userID1, userID2].sort().join('-'); // 사용자 ID 정렬하여 결합
+// 룸 ID 생성 함수
+function generateRoomID(senderID, receiverID) {
+    const sortedIDs = [senderID, receiverID].sort().join('-'); // 사용자 ID 정렬하여 결합
     return sortedIDs; // 룸 ID 반환
 }
 
@@ -50,45 +49,39 @@ function createChatRoom(roomID) {
 }
 
 io.on('connection', (socket) => {
-    socket.on("login", async (userID)=>{
-        console.log(userID);
-    })
+    socket.on("LOGIN", async (senderID, receiverID)=>{
+        console.log(senderID, receiverID);
 
-    /* 룸 접속 */
-    socket.on('joinRoom', (roomToJoin) => {
-        const currentRooms = Object.keys(socket.rooms);
-        currentRooms.forEach((room) => {
+        const roomID = generateRoomID(senderID, receiverID);
+
+        // 현재 소켓의 모든 룸을 나가고 새로운 룸에 조인
+        Object.keys(socket.rooms).forEach((room) => {
             if (room !== socket.id) {
-                socket.leave(room); // 모든 룸에서 나가고
+                socket.leave(room);
             }
         });
 
-        socket.join('채팅방 1');
+        socket.join(roomID); // 선택한 룸에 조인
 
-        //     // const currentUserID = 'user123'; // 현재 사용자의 ID
-        //     // const roomID = generateRoomID(currentUserID, receiverUserId); // 룸 ID 생성
+        console.log(`Socket ${socket.id} joined room ${roomID}`);
 
-        //     socket.join(roomToJoin); // 선택한 룸에 조인
-
-        console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
         // 룸을 성공적으로 전환했다는 신호 발송
-        io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
+        io.to(socket.id).emit('roomChanged', roomID);
 
-        // 새로운 소켓이 연결될 때 DB에서 데이터를 가져와서 클라이언트에게 전송
-        connection.query("select message_id, message, sender, created_at from chat_message where room_id = ? order by message_id asc", [roomToJoin], (error, results, fields) => {
+        // DB에서 해당 룸의 메시지 가져와 클라이언트에게 전송
+        connection.query("select message_id, message, sender, receiver, created_at from chat_message where room_id = ? order by message_id asc", [roomID], (error, results, fields) => {
             if (error) {
-                // 에러 처리
                 console.error('Error retrieving messages from DB:', error);
             } else {
                 // 클라이언트에 데이터 전송
-                socket.emit('chatMessage', results); // 가져온 메시지 전송
+                socket.emit('GET', results); // 가져온 메시지 전송
             }
         });
     });
 
     /* 메시지 전송 */
     socket.on('SEND', function(messageData) {
-        const { msg, roomID, sender } = messageData;
+        const { msg, roomID, sender, receiver } = messageData;
 
         console.log('Message received: ' + msg);
         
@@ -99,8 +92,8 @@ io.on('connection', (socket) => {
     
         // DB에 INSERT (parameterized query 사용)
         connection.query(
-            "INSERT INTO chat_message (room_id, sender, message, created_at) VALUES (?, ?, ?, NOW())",
-            [roomID, sender, msg],
+            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at) VALUES (?, ?, ?, ?, NOW())",
+            [roomID, sender, receiver, msg],
             (error, results, fields) => {
                 if (error) {
                     // INSERT 중 에러 발생 시 처리
