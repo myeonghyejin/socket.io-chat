@@ -22,7 +22,7 @@ const path = require('path');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'upload'));
+        cb(null, path.join(__dirname, 'static/upload'));
     },
     filename: (req, file, cb) => {
         const randomID = uuid4();
@@ -66,7 +66,7 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
         const imagePaths = [];
 
         for (const file of req.files) {
-            const imagePath = path.join(__dirname, 'upload', file.filename);
+            const imagePath = path.join('../upload', file.filename);
             imagePaths.push(imagePath);
             // 데이터베이스에 이미지 경로 저장 또는 다른 작업 수행
             await saveImageToDB(imagePath);
@@ -74,6 +74,7 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
 
         res.status(200).json({ imagePaths }); // JSON 응답 반환
         console.log(imagePaths);
+        console.log(__dirname);
     } catch (err) {
         console.error('이미지 업로드 중 오류 발생:', err);
         res.status(500).send('이미지 업로드 중 오류 발생');

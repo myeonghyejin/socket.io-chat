@@ -39,28 +39,34 @@
 <script type="text/javascript" src="/js/chat.js"></script>
 <script>
     function uploadImages() {
-    const formData = new FormData();
-    const fileInput = document.getElementById('fileInput');
-    const files = fileInput.files;
+        const formData = new FormData();
+        const fileInput = document.getElementById('fileInput');
+        const files = fileInput.files;
 
-    for (let i = 0; i < files.length; i++) {
-        formData.append('imgs', files[i]);
+        for (let i = 0; i < files.length; i++) {
+            formData.append('imgs', files[i]);
+        }
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('이미지 업로드 결과:', data);
+
+            // 업로드한 이미지를 화면에 표시
+            const imagePreview = document.getElementById('msg');
+            data.imagePaths.forEach(imagePath => {
+                const imgElement = document.createElement('img');
+                imgElement.src = imagePath;
+                imgElement.classList.add('uploaded-image');
+                imagePreview.appendChild(imgElement);
+            });
+        })
+        .catch(error => {
+            console.error('이미지 업로드 중 오류 발생:', error);
+        });
     }
-
-    fetch('/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        // 이미지 업로드 후의 처리 (예: 경로 표시, UI 갱신 등)
-        console.log('이미지 업로드 결과:', data);
-        // 여기에 이미지 업로드 후의 로직 추가
-    })
-    .catch(error => {
-        console.error('이미지 업로드 중 오류 발생:', error);
-        // 오류 처리 로직 추가
-    });
-}
 </script>
 </html>

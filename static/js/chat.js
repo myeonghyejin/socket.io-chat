@@ -86,7 +86,6 @@ socket.on('RECEIVE', function(msg) {
     }
 });
 
-
 // 클라이언트 측 소켓 이벤트 처리
 socket.on('GET', (chatMessage) => {
     const msgContainer = $('#msg');
