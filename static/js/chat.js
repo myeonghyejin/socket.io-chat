@@ -37,8 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     askUserID();
 });
 
-chatForm.addEventListener('submit', function(event) {
-    // event.preventDefault(); // 기본 이벤트 제거
+chatForm.addEventListener('submit', function() {
     let msgText = $('#input_box');
 
     if (msgText.val() == '') {

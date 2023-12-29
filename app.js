@@ -49,11 +49,9 @@ const upload = multer({
 /* 이미지 저장 함수들 */
 async function saveImageToDB(imagePath) {
     try {
-        const result = await connection.query("INSERT INTO chat_image (image_path) VALUES (?)", [imagePath]);
+        await connection.query("INSERT INTO chat_image (image_path) VALUES (?)", [imagePath]);
         console.log('이미지 경로를 데이터베이스에 저장했습니다.');
-        return result;
     } catch (error) {
-        console.error('이미지 경로를 데이터베이스에 저장하는 중 오류가 발생했습니다:', error);
         throw new Error('이미지 경로를 데이터베이스에 저장하는 중 오류가 발생했습니다.');
     }
 }
@@ -74,8 +72,8 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
             await saveImageToDB(imagePath);
         }
 
-        // 이미지 업로드가 완료되면 이미지 경로를 클라이언트에 응답으로 보내줌
-        res.status(200).json({ imagePaths });
+        res.status(200).json({ imagePaths }); // JSON 응답 반환
+        console.log(imagePaths);
     } catch (err) {
         console.error('이미지 업로드 중 오류 발생:', err);
         res.status(500).send('이미지 업로드 중 오류 발생');

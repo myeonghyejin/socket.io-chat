@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="https://cdn.rawgit.com/eligrey/FileSaver.js/5ed507ef8aa53d8ecfea96d96bc7214cd2476fd2/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.js"></script>
+    <script src = "https://cdn.rawgit.com/eligrey/FileSaver.js/5ed507ef8aa53d8ecfea96d96bc7214cd2476fd2/FileSaver.min.js"></script>
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -17,7 +17,9 @@
         <div class="chat">
             <div id="usercount"></div>
             <div id="msg">
-                <!-- 이미지를 표시할 div -->
+                <div class="notification-container" id="notification-container">
+                <p></p>
+                </div>
             </div>
             <div class="send">
                 <form id="chatform" onsubmit="return false">
@@ -26,9 +28,9 @@
                     </div>
                     <input type="submit" id="sendmsg" class="btn btn-warning btn-sm" value="Send">
                 </form>
-                <form id="uploadForm">
-                    <input type="file" name="imgs" id="imageInput" multiple/>
-                    <button type="button" onclick="handleFileUpload()">Upload</button>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" id="fileInput" name="imgs" multiple/>
+                    <button type="button" onclick="uploadImages()">Upload</button>
                 </form>
             </div>
         </div>
@@ -36,33 +38,29 @@
 </body>
 <script type="text/javascript" src="/js/chat.js"></script>
 <script>
-    async function handleFileUpload() {
-    const fileInput = document.querySelector('input[name="imgs"]');
+    function uploadImages() {
+    const formData = new FormData();
+    const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
 
-    try {
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: new FormData(document.getElementById('uploadForm'))
-        });
-
-        if (response.ok) {
-            const data = await response.json(); // 서버로부터 이미지 경로를 받아옴
-            const imagePaths = data.imagePaths;
-
-            // 이미지 경로를 이용하여 이미지를 화면에 표시
-            const msgElement = document.getElementById('msg');
-            imagePaths.forEach(imagePath => {
-                const img = document.createElement('img');
-                img.src = imagePath;
-                msgElement.appendChild(img);
-            });
-        } else {
-            throw new Error('이미지 업로드 실패');
-        }
-    } catch (error) {
-        console.error('이미지 업로드 중 오류 발생:', error);
+    for (let i = 0; i < files.length; i++) {
+        formData.append('imgs', files[i]);
     }
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 이미지 업로드 후의 처리 (예: 경로 표시, UI 갱신 등)
+        console.log('이미지 업로드 결과:', data);
+        // 여기에 이미지 업로드 후의 로직 추가
+    })
+    .catch(error => {
+        console.error('이미지 업로드 중 오류 발생:', error);
+        // 오류 처리 로직 추가
+    });
 }
 </script>
 </html>
