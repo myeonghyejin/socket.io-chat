@@ -2,7 +2,7 @@
 
 #msg{
   border: 1px white solid;
-  width: 400px;
+  width: 450px;
   height: 650px;
   background-color :	#9bbbd4;
   font-size : 20px;
@@ -34,7 +34,7 @@
 input[type=text]{
   border: 1px #F2F2F2 solid;
   background-color : #E6E6E6;
-  width: 280px;
+  width: 310px;
   height : 33px;
   overflow: auto;
   margin : 8px;
@@ -43,21 +43,22 @@ input[type=text]{
 }
 
 .send {
-   width: 400px;
+   width: 450px;
    height : 50px;
    margin: auto;
    background-color : white;
 }
 .send > form {
-  width : 400px;
+  width : 450px;
   height : 50px;
   display:inline-block;
-  position : absolute;
 }
 #sendmsg{
-  right : 10px;
-  top : 10px;
-  position : absolute;
+  margin: auto 0;
+  display:inline-block;
+}
+#sendimg{
+  margin: auto 0;
   display:inline-block;
 }
 
@@ -94,7 +95,7 @@ input[type=text]{
   font-family: "a타이틀고딕5";
 }
 #user_text{
-  font-size: 0.9em;
+  font-size: 0.7em;
   align-items : center;
 }
 
