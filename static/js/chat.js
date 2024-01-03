@@ -22,10 +22,10 @@ socket.on('news', function (data) {
 document.addEventListener('DOMContentLoaded', function() {
     // 아이디 입력
     const askUserID = () => {
-        // senderID = window.prompt("수신자 아이디를 입력하세요.");
+        senderID = window.prompt("수신자 아이디를 입력하세요.");
         console.log(senderID);
 
-        // receiverID = window.prompt("송신자 아이디를 입력하세요.");
+        receiverID = window.prompt("송신자 아이디를 입력하세요.");
         console.log(receiverID);
 
         // 아이디를 서버로 전달

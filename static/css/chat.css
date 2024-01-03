@@ -42,8 +42,16 @@ input[type=text] {
   padding-top: 8px;
 }
 .image-wrapper {
-  display: inline-block;
-  margin: 5px;
+  margin: 10px;
+}
+.image-wrapper > img {
+    width: 250px;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+.uploaded-image {
+  cursor: pointer; /* 호버 시에 손가락 모양의 커서 보이도록 설정 */
 }
 
 .send {

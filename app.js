@@ -47,20 +47,21 @@ const upload = multer({
 });
 
 /* 이미지 저장 함수들 */
-async function saveImageToDB(imagePath) {
+async function saveImageToDB(messageID, imagePath) {
     try {
-        await connection.query("INSERT INTO chat_image (image_path) VALUES (?)", [imagePath]);
+        await connection.query("INSERT INTO chat_image (message_id, image_path) VALUES (?, ?)", [messageID, imagePath]);
         console.log('이미지 경로를 데이터베이스에 저장했습니다.');
     } catch (error) {
         throw new Error('이미지 경로를 데이터베이스에 저장하는 중 오류가 발생했습니다.');
     }
 }
 
-// 이미지 파일 업로드하는 라우트 설정
 app.post('/upload', upload.array('imgs', 10), async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).send('이미지를 선택하세요.');
     }
+
+    const { roomID, sender, receiver } = req.body;
 
     try {
         const imagePaths = [];
@@ -68,8 +69,21 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
         for (const file of req.files) {
             const imagePath = path.join('../upload', file.filename);
             imagePaths.push(imagePath);
-            // 데이터베이스에 이미지 경로 저장 또는 다른 작업 수행
-            await saveImageToDB(imagePath);
+
+            connection.query(
+                "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, '이미지 저장', now(), 'image')",
+                [roomID, sender, receiver],
+                async (error, results, fields) => {
+                    if (error) {
+                        console.error('이미지 정보 저장 중 오류 발생:', error);
+                        res.status(500).send('이미지 정보 저장 중 오류 발생');
+                    } else {
+                        const messageID = results.insertId; // 저장된 메시지의 ID
+                        
+                        await saveImageToDB(messageID, imagePath); // 이미지를 DB에 저장하는 함수
+                    }
+                }
+            )
         }
 
         res.status(200).json({ imagePaths }); // JSON 응답 반환
@@ -157,7 +171,7 @@ io.on('connection', (socket) => {
     
         // DB에 INSERT (parameterized query 사용)
         connection.query(
-            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at) VALUES (?, ?, ?, ?, NOW())",
+            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, ?, now(), 'text')",
             [roomID, sender, receiver, msg],
             (error, results, fields) => {
                 if (error) {
@@ -192,7 +206,7 @@ io.on('connection', (socket) => {
     socket.on('IMAGE', async (data) => {
         try {
             const imagePath = await saveImageToFS(data); // 파일 시스템에 이미지 저장
-            await saveImageToDB(imagePath); // 데이터베이스에 이미지 경로 저장
+            await saveImageToDB(messageID, imagePath); // 데이터베이스에 이미지 경로 저장
 
             // 저장 후에 클라이언트에 이미지 경로 전송
             io.emit('imagePath', { path: imagePath });
