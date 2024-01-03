@@ -14,6 +14,21 @@ socket.on('news', function (data) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    const chat = document.querySelector('.chat');
+    const send = document.querySelector('.send');
+
+    function adjustChatHeight() {
+        const sendHeight = send.offsetHeight;
+        chat.style.bottom = sendHeight + 'px';
+    }
+
+    adjustChatHeight(); // 페이지 로드 시 높이 조절
+
+    // 창 크기가 변경될 때 높이 재조정
+    window.addEventListener('resize', () => {
+        adjustChatHeight();
+    });
+
     // 아이디 입력
     const askUserID = () => {
         senderID = window.prompt("수신자 아이디를 입력하세요.");
@@ -30,6 +45,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     askUserID();
 });
+
+function scrollToBottom() {
+    const msgContainer = document.getElementById('msg');
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+}
 
 
 // 클라이언트 측 소켓 이벤트 처리
@@ -58,7 +78,7 @@ socket.on('GET', (chatMessage) => {
         }
 
         if (msg.sender === senderID) {
-            msgBox.addClass('me'); // 보낸 사람 스타일 클래스 추가
+            msgBox.removeClass('msgBox').addClass('me');
             msgBox.css('display', 'inline-block');
             msgLine.css('text-align', 'right');
         } else {
@@ -68,6 +88,10 @@ socket.on('GET', (chatMessage) => {
         msgLine.append(msgBox);
         msgContainer.append(msgLine);
     });
+
+    // 메시지가 표시된 후에 스크롤을 아래로 이동
+    scrollToBottom();
+
 });
 
 // 메시지 전송
@@ -121,54 +145,59 @@ socket.on('RECEIVE', function(msg) {
 });
 
 // 이미지 전송
-function uploadImages() {
+document.getElementById('fileInput').addEventListener('change', function() {
+    const files = document.getElementById('fileInput').files;
+    uploadFiles(files);
+});
+
+function uploadFiles(files) {
     const formData = new FormData();
-    const fileInput = document.getElementById('fileInput');
-    const files = fileInput.files;
+    const xhr = new XMLHttpRequest();
 
     formData.append('roomID', roomID);
     formData.append('sender', senderID);
     formData.append('receiver', receiverID);
-    
+
     for (let i = 0; i < files.length; i++) {
         formData.append('imgs', files[i]);
     }
 
-    fetch('/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('이미지 업로드 결과:', data);
+    xhr.open('POST', '/upload', true);
 
-        // 업로드한 이미지를 화면에 표시
-        const msgContainer = $('#msg');
-        const msgLine = $('<div>').addClass('msgLine');
-        let msgBox;
-        data.imagePaths.forEach(imagePath => {
-            const imgElement = document.createElement('img'); // 이미지 요소 생성
-            imgElement.src = imagePath;
-            imgElement.classList.add('uploaded-image');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            displayImages(data.imagePaths); // 이미지를 표시하는 함수 호출
+        }
+    };
 
-            const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
-            imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
+    xhr.send(formData);
+}
 
-            // 이미지에 onclick 이벤트 핸들러 추가
-            imgElement.onclick = function() {
-                window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
-            };
+function displayImages(imagePaths) {
+    const msgContainer = $('#msg');
+    const msgLine = $('<div>').addClass('msgLine');
 
-            msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
-            msgBox.addClass('me');
-            msgBox.css('display', 'inline-block');
-            msgLine.css('text-align', 'right');
-            msgLine.append(msgBox);
-            msgContainer.append(msgLine);
-        });
-    })
-    .catch(error => {
-        console.error('이미지 업로드 중 오류 발생:', error);
+    imagePaths.forEach(imagePath => {
+        const imgElement = document.createElement('img');
+        imgElement.src = imagePath;
+        imgElement.classList.add('uploaded-image');
+
+        const imgWrapper = $('<div>').addClass('image-wrapper');
+        imgWrapper.append(imgElement);
+
+        imgElement.onclick = function() {
+            window.open(this.src);
+        };
+
+        const msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
+        msgBox.removeClass('msgBox').addClass('me');
+        msgBox.css('display', 'inline-block');
+        msgLine.css('text-align', 'right');
+        msgLine.append(msgBox);
+        msgContainer.append(msgLine);
+
+        msgContainer.scrollTop(msgContainer.prop('scrollHeight'));
     });
 }
 
@@ -181,5 +210,5 @@ function joinRoom(roomID) {
 // 접속한 룸이 바뀌었을 때
 socket.on('roomChanged', (joinedRoom) => {
     roomID = joinedRoom;
-    document.getElementById('msg').innerHTML = joinedRoom + "에 접속했습니다.";
+    // document.getElementById('system').innerHTML = joinedRoom + "에 접속했습니다.";
 });

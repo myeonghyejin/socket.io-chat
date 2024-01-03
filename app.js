@@ -167,6 +167,7 @@ io.on('connection', (socket) => {
         const { msg, roomID, sender, receiver } = messageData;
 
         console.log('Message received: ' + msg);
+        console.log(messageData);
         
         createChatRoom(roomID);
 

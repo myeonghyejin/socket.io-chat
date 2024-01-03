@@ -1,12 +1,30 @@
 @charset "utf-8";
 
-#msg {
-  border: 1px white solid;
-  width: 450px;
-  height: 650px;
+html, body {
+  height: 100%;
+}
+.box {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background-color:	#9bbbd4;
-  font-size: 20px;
-  overflow: auto;
+}
+.chat {
+  flex: 1; /* .send에 남은 공간을 모두 할당 */
+  height: calc(100% - 60px); /* 채팅창의 높이 조절 (60px는 .send의 높이) */
+  background-color: #9bbbd4;
+  overflow-y: auto; /* 채팅창이 넘칠 때 스크롤 생성 */
+}
+#system {
+  padding-top: 5px;
+  margin: auto;
+  color: white;
+  font-size: 14px;
+  text-align: center;
+}
+#msg {
+  background-color: #9bbbd4;
+  overflow-y: scroll; /* 항상 스크롤바 표시 */
   margin: auto;
   color: white;
 }
@@ -16,30 +34,20 @@
 .me {
   border: 1px solid #f5bc42;
   background: #f5bc42;
-  padding: 2px 5px;
+  padding: 5px;
   color: black;
-  font-family: "a타이틀고딕2";
   font-size: 0.9em;
-  border-radius: 10px;
+  letter-spacing: -0.5px;
+  border-radius: 5px;
 }
 .msgBox {
   border: 1px solid white;
   background: white;
-  padding: 2px 5px;
+  padding: 5px;
   color: black;
-  font-family: "a타이틀고딕2";
   font-size: 0.9em;
-  border-radius: 10px;
-}
-input[type=text] {
-  border: 1px #F2F2F2 solid;
-  background-color: #E6E6E6;
-  width: 310px;
-  height: 33px;
-  overflow: auto;
-  margin: 8px;
-  padding-left: 5px;
-  padding-top: 8px;
+  letter-spacing: -0.5px;
+  border-radius: 5px;
 }
 .image-wrapper {
   margin: 10px;
@@ -48,30 +56,54 @@ input[type=text] {
     width: 250px;
     height: 250px;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 .uploaded-image {
   cursor: pointer; /* 호버 시에 손가락 모양의 커서 보이도록 설정 */
 }
 
 .send {
-   width: 450px;
-   height: 50px;
-   margin: auto;
-   background-color: white;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  width: 100%;
+  background-color: white;
+  position: sticky; /* 스크롤 시 고정 */
+  bottom: 0; /* 하단에 고정 */
+  z-index: 1; /* 다른 요소들보다 앞에 표시되도록 */
 }
-.send > form {
-  width: 450px;
-  height: 50px;
-  display:inline-block;
+#chatform {
+  flex: 1;
+  display: flex; /* 내부 요소를 수평으로 배치하기 위해 추가 */
+  align-items: center; /* 내부 요소들을 세로 가운데로 정렬 */
 }
-#sendmsg {
-  margin: auto 0;
-  display:inline-block;
+#chatform input[type="text"] {
+  flex: 1;
+  border: 1px #F2F2F2 solid;
+  background-color: #E6E6E6;
+  height: 29.6px;
+  overflow: auto;
+  margin-right: 5px;
 }
-#sendimg {
-  margin: auto 0;
-  display: inline-block;
+#button {
+  margin-left: auto;
+  display: flex; /* 내부 요소를 수평으로 배치하기 위해 추가 */
+  align-items: center; /* 내부 요소들을 세로 가운데로 정렬 */
+  padding-left: 7px;
+}
+#button input[type="file"],
+#button input[type="submit"] {
+  margin-left: 5px; /* 각 버튼 간격 조절을 위한 마진 추가 */
+}
+#chatform input[type="file"] {  /* 파일 필드 숨기기 */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
 }
 
 #menu {
@@ -83,7 +115,6 @@ input[type=text] {
    border: 5px;
    border-radius: 5px;
    font-size: 0.9em;
-   margin-top: 7px;
 }
 
 .navigator {
