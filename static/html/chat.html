@@ -9,8 +9,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="https://cdn.rawgit.com/eligrey/FileSaver.js/5ed507ef8aa53d8ecfea96d96bc7214cd2476fd2/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.js"></script>
 </head>
 <body>
     <div class="box">
@@ -37,51 +35,4 @@
     </div>
 </body>
 <script type="text/javascript" src="/js/chat.js"></script>
-<script>
-    function uploadImages() {
-        const formData = new FormData();
-        const fileInput = document.getElementById('fileInput');
-        const files = fileInput.files;
-
-        formData.append('roomID', roomID);
-        formData.append('sender', senderID);
-        formData.append('receiver', receiverID);
-        
-        for (let i = 0; i < files.length; i++) {
-            formData.append('imgs', files[i]);
-        }
-
-        fetch('/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('이미지 업로드 결과:', data);
-
-            // 업로드한 이미지를 화면에 표시
-            const imagePreview = document.getElementById('msg');
-            data.imagePaths.forEach(imagePath => {
-                const imgWrapper = document.createElement('div'); // 외부 div 생성
-                const imgElement = document.createElement('img'); // 이미지 요소 생성
-
-                imgElement.src = imagePath;
-                imgElement.classList.add('uploaded-image');
-
-                imgWrapper.classList.add('image-wrapper'); // 외부 div에 클래스 추가
-                imgWrapper.appendChild(imgElement); // 이미지를 외부 div 안에 추가
-
-                // 이미지에 onclick 이벤트 핸들러 추가
-                imgElement.onclick = function() {
-                    window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
-                };
-
-                imagePreview.appendChild(imgWrapper); // 외부 div를 화면에 추가
-            });
-        })
-        .catch(error => {
-            console.error('이미지 업로드 중 오류 발생:', error);
-        });
-    }
-</script>
 </html>

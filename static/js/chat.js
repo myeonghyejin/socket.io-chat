@@ -13,12 +13,6 @@ socket.on('news', function (data) {
     });
 });
 
-// socket.on 함수로 서버에서 전달하는 신호를 수신
-// socket.on('usercount', (count) => {
-//     let userCounter = document.getElementById('usercount');
-//     userCounter.innerText = "현재 " + count + "명이 서버에 접속해 있습니다.";
-// });
-
 document.addEventListener('DOMContentLoaded', function() {
     // 아이디 입력
     const askUserID = () => {
@@ -37,6 +31,46 @@ document.addEventListener('DOMContentLoaded', function() {
     askUserID();
 });
 
+
+// 클라이언트 측 소켓 이벤트 처리
+socket.on('GET', (chatMessage) => {
+    const msgContainer = $('#msg');
+    
+    chatMessage.forEach((msg) => {
+        const msgLine = $('<div>').addClass('msgLine');
+        let msgBox;
+
+        if (msg.type === 'text') {
+            msgBox = $('<div>').addClass('msgBox').text(msg.message);
+        } else if (msg.type === 'image') {
+            const imgElement = document.createElement('img');
+            imgElement.src = msg.message; // 이미지 경로 설정
+            imgElement.classList.add('uploaded-image');
+
+            const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
+            imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
+
+            imgElement.onclick = function() {
+                window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
+            };
+
+            msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
+        }
+
+        if (msg.sender === senderID) {
+            msgBox.addClass('me'); // 보낸 사람 스타일 클래스 추가
+            msgBox.css('display', 'inline-block');
+            msgLine.css('text-align', 'right');
+        } else {
+            msgBox.css('display', 'inline-block');
+        }
+            
+        msgLine.append(msgBox);
+        msgContainer.append(msgLine);
+    });
+});
+
+// 메시지 전송
 chatForm.addEventListener('submit', function() {
     let msgText = $('#input_box');
 
@@ -86,26 +120,57 @@ socket.on('RECEIVE', function(msg) {
     }
 });
 
-// 클라이언트 측 소켓 이벤트 처리
-socket.on('GET', (chatMessage) => {
-    const msgContainer = $('#msg');
-    
-    chatMessage.forEach((msg) => {
-        const msgLine = $('<div>').addClass('msgLine');
-        let msgBox = $('<div>').addClass('msgBox').text(msg.message); // 메시지 내용 추가
+// 이미지 전송
+function uploadImages() {
+    const formData = new FormData();
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
 
-        if (msg.sender === senderID) {
-            msgBox = $('<div>').addClass('me').text(msg.message); // 메시지 내용 추가
+    formData.append('roomID', roomID);
+    formData.append('sender', senderID);
+    formData.append('receiver', receiverID);
+    
+    for (let i = 0; i < files.length; i++) {
+        formData.append('imgs', files[i]);
+    }
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('이미지 업로드 결과:', data);
+
+        // 업로드한 이미지를 화면에 표시
+        const msgContainer = $('#msg');
+        const msgLine = $('<div>').addClass('msgLine');
+        let msgBox;
+        data.imagePaths.forEach(imagePath => {
+            const imgElement = document.createElement('img'); // 이미지 요소 생성
+            imgElement.src = imagePath;
+            imgElement.classList.add('uploaded-image');
+
+            const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
+            imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
+
+            // 이미지에 onclick 이벤트 핸들러 추가
+            imgElement.onclick = function() {
+                window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
+            };
+
+            msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
+            msgBox.addClass('me');
             msgBox.css('display', 'inline-block');
             msgLine.css('text-align', 'right');
-        } else {
-            msgBox.css('display', 'inline-block');
-        }
-            
-        msgLine.append(msgBox);
-        msgContainer.append(msgLine);
+            msgLine.append(msgBox);
+            msgContainer.append(msgLine);
+        });
+    })
+    .catch(error => {
+        console.error('이미지 업로드 중 오류 발생:', error);
     });
-});
+}
 
 // 룸 접속 버튼 클릭 시
 function joinRoom(roomID) {

@@ -71,8 +71,8 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
             imagePaths.push(imagePath);
 
             connection.query(
-                "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, '이미지 저장', now(), 'image')",
-                [roomID, sender, receiver],
+                "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, ?, now(), 'image')",
+                [roomID, sender, receiver, imagePath],
                 async (error, results, fields) => {
                     if (error) {
                         console.error('이미지 정보 저장 중 오류 발생:', error);
@@ -148,14 +148,18 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('roomChanged', roomID);
 
         // DB에서 해당 룸의 메시지 가져와 클라이언트에게 전송
-        connection.query("select message_id, message, sender, receiver, created_at from chat_message where room_id = ? order by message_id asc", [roomID], (error, results, fields) => {
-            if (error) {
-                console.error('Error retrieving messages from DB:', error);
-            } else {
-                // 클라이언트에 데이터 전송
-                socket.emit('GET', results); // 가져온 메시지 전송
+        connection.query(
+            "SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type FROM chat_message cm LEFT JOIN chat_image ci ON cm.message_id = ci.message_id WHERE room_id = ? ORDER BY created_at ASC",
+            [roomID],
+            (error, results, fields) => {
+                if (error) {
+                    console.error('Error retrieving messages from DB:', error);
+                } else {
+                    // 클라이언트에 데이터 전송
+                    socket.emit('GET', results); // 가져온 메시지 전송
+                }
             }
-        });
+        );
     });
 
     /* 메시지 전송 */
@@ -200,19 +204,6 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
         // 룸을 성공적으로 전환했다는 신호 발송
         io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
-    });
-
-    /* 이미지 업로드 및 데이터베이스 저장 */
-    socket.on('IMAGE', async (data) => {
-        try {
-            const imagePath = await saveImageToFS(data); // 파일 시스템에 이미지 저장
-            await saveImageToDB(messageID, imagePath); // 데이터베이스에 이미지 경로 저장
-
-            // 저장 후에 클라이언트에 이미지 경로 전송
-            io.emit('imagePath', { path: imagePath });
-        } catch (err) {
-            console.error('이미지 업로드 및 저장 중 오류 발생:', err);
-        }
     });
 
 });
