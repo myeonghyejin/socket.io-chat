@@ -39,10 +39,10 @@ html, body {
   flex: 1; /* .send에 남은 공간을 모두 할당 */
   overflow-y: auto; /* 채팅창이 넘칠 때 스크롤 생성 */
 }
-#system {
+.system {
   font-family: 'Pretendard-Regular';
   font-weight: bold;
-  padding-top: 10px;
+  padding: 10px;
   margin: auto;
   font-size: 14px;
   text-align: center;

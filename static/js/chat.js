@@ -50,62 +50,69 @@ document.addEventListener('DOMContentLoaded', function() {
 socket.on('GET', (chatMessage) => {
     const msgContainer = $('#msg');
     
-    chatMessage.forEach((msg, index) => {
-        const msgLine = $('<div>').addClass('msgLine');
-        let msgBox;
+    // 대화 내역이 있는 경우
+    if (chatMessage.length > 0) {
+        chatMessage.forEach((msg, index) => {
+            const msgLine = $('<div>').addClass('msgLine');
+            let msgBox;
 
-        const date = new Date(msg.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-        let dateBox;
+            const date = new Date(msg.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
+            let dateBox;
 
-        if (msg.type === 'text') {
-            msgBox = $('<div>').addClass('received-text-message').text(msg.message);
-            dateBox = $('<div>').addClass('dateBox').text(date);
+            if (msg.type === 'text') {
+                msgBox = $('<div>').addClass('received-text-message').text(msg.message);
+                dateBox = $('<div>').addClass('dateBox').text(date);
 
-            if (msg.sender === senderID) {
-                msgBox.removeClass('received-text-message').addClass('sent-text-message');
-                msgBox.css('display', 'inline-block');
-                msgLine.css('text-align', 'right');
-            } else {
-                msgBox.css('display', 'inline-block');
+                if (msg.sender === senderID) {
+                    msgBox.removeClass('received-text-message').addClass('sent-text-message');
+                    msgBox.css('display', 'inline-block');
+                    msgLine.css('text-align', 'right');
+                } else {
+                    msgBox.css('display', 'inline-block');
+                }
+
+            } else if (msg.type === 'image') {
+                const imgElement = document.createElement('img');
+                imgElement.src = msg.message; // 이미지 경로 설정
+                imgElement.classList.add('uploaded-image');
+
+                const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
+                imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
+
+                imgElement.onclick = function() {
+                    window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
+                };
+
+                msgBox = $('<div>').addClass('received-image-message').append(imgWrapper);
+                dateBox = $('<div>').addClass('dateBox').text(date);
+
+                if (msg.sender === senderID) {
+                    msgBox.removeClass('received-image-message').addClass('sent-image-message');
+                    msgBox.css('display', 'inline-block');
+                    msgLine.css('text-align', 'right');
+                } else {
+                    msgBox.css('display', 'inline-block');
+                }
+
             }
+                
+            msgLine.append(msgBox, dateBox);
+            msgContainer.append(msgLine);
 
-        } else if (msg.type === 'image') {
-            const imgElement = document.createElement('img');
-            imgElement.src = msg.message; // 이미지 경로 설정
-            imgElement.classList.add('uploaded-image');
-
-            const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
-            imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
-
-            imgElement.onclick = function() {
-                window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
-            };
-
-            msgBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-            dateBox = $('<div>').addClass('dateBox').text(date);
-
-            if (msg.sender === senderID) {
-                msgBox.removeClass('received-image-message').addClass('sent-image-message');
-                msgBox.css('display', 'inline-block');
-                msgLine.css('text-align', 'right');
-            } else {
-                msgBox.css('display', 'inline-block');
+            // 모든 메시지를 처리한 후에 스크롤을 맨 아래로 이동
+            if (index === chatMessage.length - 1) {
+                const systemMessage = $('<div>').addClass('system').text('대화가 시작되었습니다.');
+                msgContainer.append(systemMessage);
             }
+        });
 
-        }
-            
-        msgLine.append(msgBox, dateBox);
-        msgContainer.append(msgLine);
-
+    } else {
+        // 대화 내역이 없는 경우
         const systemMessage = $('<div>').addClass('system').text('대화가 시작되었습니다.');
         msgContainer.append(systemMessage);
+    }
 
-        // 모든 메시지를 처리한 후에 스크롤을 맨 아래로 이동
-        if (index === chatMessage.length - 1) {
-            $('.chat').scrollTop($('.chat')[0].scrollHeight);
-        }
-    });
-
+    $('.chat').scrollTop($('.chat')[0].scrollHeight);
 });
 
 // 메시지 전송
