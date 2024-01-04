@@ -14,19 +14,15 @@
     <div class="box">
         <div class="chat">
             <div id="system"></div>
-            <div id="msg">
-                <div class="notification-container" id="notification-container">
-                    <p></p>
-                </div>
-            </div>
+            <div id="msg"></div>
         </div>
         <div class="send">
             <form id="chatform" enctype="multipart/form-data" onsubmit="return false">
                 <input type="text" id="input_box" contenteditable="true" autocomplete="off">
                 <div id="button">
-                    <label for="fileInput" class="btn btn-warning btn-sm">Photo</label>
+                    <label for="fileInput" class="btn btn-sm">Photo</label>
                     <input type="file" id="fileInput" name="imgs" multiple/>
-                    <input type="submit" class="btn btn-warning btn-sm" value="Send">
+                    <input type="submit" class="btn btn-sm" value="Send">
                 </div>
             </form>
         </div>

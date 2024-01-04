@@ -1,53 +1,61 @@
 @charset "utf-8";
+@font-face {
+  font-family: 'Pretendard-Regular';
+  src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
 
 html, body {
   height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 .box {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color:	#9bbbd4;
 }
 .chat {
   flex: 1; /* .send에 남은 공간을 모두 할당 */
-  height: calc(100% - 60px); /* 채팅창의 높이 조절 (60px는 .send의 높이) */
-  background-color: #9bbbd4;
   overflow-y: auto; /* 채팅창이 넘칠 때 스크롤 생성 */
 }
 #system {
   padding-top: 5px;
   margin: auto;
-  color: white;
   font-size: 14px;
   text-align: center;
 }
 #msg {
-  background-color: #9bbbd4;
-  overflow-y: scroll; /* 항상 스크롤바 표시 */
   margin: auto;
-  color: white;
 }
 .msgLine {
   margin: 15px;
 }
-.me {
-  border: 1px solid #f5bc42;
-  background: #f5bc42;
-  padding: 5px;
-  color: black;
+.sent-text-message {
+  background: purple;
+  font-weight: 500;
+  font-family: 'Pretendard-Regular';
+  padding: 10px 15px;
   font-size: 0.9em;
   letter-spacing: -0.5px;
   border-radius: 5px;
+  color: white;
 }
-.msgBox {
-  border: 1px solid white;
-  background: white;
-  padding: 5px;
-  color: black;
+.received-text-message {
+  background: grey;
+  font-family: 'Pretendard-Regular';
+  padding: 10px 15px;
   font-size: 0.9em;
   letter-spacing: -0.5px;
   border-radius: 5px;
+  color: white;
+}
+.dateBox {
+  font-family: 'Pretendard-Regular';
+  margin-top: 2px;
+  font-size: 0.8em;
 }
 .image-wrapper {
   margin: 10px;
@@ -60,6 +68,12 @@ html, body {
 }
 .uploaded-image {
   cursor: pointer; /* 호버 시에 손가락 모양의 커서 보이도록 설정 */
+}
+.sent-image-message {
+  border-radius: 5px;
+}
+.received-image-message {
+  border-radius: 5px;
 }
 
 .send {
@@ -105,89 +119,7 @@ html, body {
   clip: rect(0,0,0,0);
   border: 0;
 }
-
-#menu {
-   display: inline-block;
-}
-.button {
-   margin-left: 5px;
-   display: block;
-   border: 5px;
-   border-radius: 5px;
-   font-size: 0.9em;
-}
-
-.navigator {
-  border: 1px #FFFFFF solid;
-  cursor: pointer;
-  margin: 1px;
-  width: 32px;
-  height: 32px
-}
-
-.navigator:hover {
-  border: 1px #CECEF6 solid;
-  cursor: pointer;
-  margin: 1px;
-  width: 32px;
-  height: 32px
-}
-
-.btn-warning {
-  color: #1f1c1c;
-  font-family: "a타이틀고딕5";
-}
-#user_text {
-  font-size: 0.7em;
-  align-items: center;
-}
-
-#spantxt {
-  text-align: center;
-}
-
-#date {
-  top: 90%;
-  left: 55%;
-}
-
-/* Scroll Bar */
-#spandate {
-  font-size: 0.6em;
-}
-/*글자 수 제한 경고창 */
-.notification-container {   
-  display: none;
-  position: absolute;
-  font-size: .8em;
-  background: rgba(0,0,0,.3);
-  border-radius: 10px;
-  padding: 20px 20px;
-  margin: auto;
-  margin-top: 300px;
-  margin-left: 100px;
-  
-}
-
-.notification-container.show {
-  display: block;
-}
-/* width */
-::-webkit-scrollbar {
-    width: 10px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-    background: #888;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
+.btn {
+  background-color: purple;
+  color: white;
 }

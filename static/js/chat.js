@@ -46,22 +46,29 @@ document.addEventListener('DOMContentLoaded', function() {
     askUserID();
 });
 
-function scrollToBottom() {
-    const msgContainer = document.getElementById('msg');
-    msgContainer.scrollTop = msgContainer.scrollHeight;
-}
-
-
 // 클라이언트 측 소켓 이벤트 처리
 socket.on('GET', (chatMessage) => {
     const msgContainer = $('#msg');
     
-    chatMessage.forEach((msg) => {
+    chatMessage.forEach((msg, index) => {
         const msgLine = $('<div>').addClass('msgLine');
         let msgBox;
 
+        const date = new Date(msg.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
+        let dateBox;
+
         if (msg.type === 'text') {
-            msgBox = $('<div>').addClass('msgBox').text(msg.message);
+            msgBox = $('<div>').addClass('received-text-message').text(msg.message);
+            dateBox = $('<div>').addClass('dateBox').text(date);
+
+            if (msg.sender === senderID) {
+                msgBox.removeClass('received-text-message').addClass('sent-text-message');
+                msgBox.css('display', 'inline-block');
+                msgLine.css('text-align', 'right');
+            } else {
+                msgBox.css('display', 'inline-block');
+            }
+
         } else if (msg.type === 'image') {
             const imgElement = document.createElement('img');
             imgElement.src = msg.message; // 이미지 경로 설정
@@ -74,23 +81,28 @@ socket.on('GET', (chatMessage) => {
                 window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
             };
 
-            msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
-        }
+            msgBox = $('<div>').addClass('received-image-message').append(imgWrapper);
+            dateBox = $('<div>').addClass('dateBox').text(date);
 
-        if (msg.sender === senderID) {
-            msgBox.removeClass('msgBox').addClass('me');
-            msgBox.css('display', 'inline-block');
-            msgLine.css('text-align', 'right');
-        } else {
-            msgBox.css('display', 'inline-block');
+            if (msg.sender === senderID) {
+                msgBox.removeClass('received-image-message').addClass('sent-image-message');
+                msgBox.css('display', 'inline-block');
+                msgLine.css('text-align', 'right');
+            } else {
+                msgBox.css('display', 'inline-block');
+            }
+
         }
             
-        msgLine.append(msgBox);
+        msgLine.append(msgBox, dateBox);
         msgContainer.append(msgLine);
-    });
 
-    // 메시지가 표시된 후에 스크롤을 아래로 이동
-    scrollToBottom();
+        // 모든 메시지를 처리한 후에 스크롤을 맨 아래로 이동
+        if (index === chatMessage.length - 1) {
+            console.log($('#msg'))
+            msgContainer.scrollTop(msgContainer.prop('scrollHeight'));
+        }
+    });
 
 });
 
@@ -112,7 +124,7 @@ chatForm.addEventListener('submit', function() {
         socket.emit('SEND', messageData);
 
         let msgLine = $('<div class="msgLine">');
-        let msgBox = $('<div class="me">');
+        let msgBox = $('<div class="sent-text-message">');
 
         msgBox.append(msgText.val());
         msgBox.css('display', 'inline-block');
@@ -128,7 +140,7 @@ chatForm.addEventListener('submit', function() {
 
 socket.on('RECEIVE', function(msg) {
     let msgLine = $('<div class="msgLine">');
-    let msgBox = $('<div class="msgBox">');
+    let msgBox = $('<div class="received-text-message">');
 
     let receivedRoom = roomID;
     let receivedMessage = msg;
@@ -190,8 +202,8 @@ function displayImages(imagePaths) {
             window.open(this.src);
         };
 
-        const msgBox = $('<div>').addClass('msgBox').append(imgWrapper);
-        msgBox.removeClass('msgBox').addClass('me');
+        const msgBox = $('<div>').addClass('received-image-message').append(imgWrapper);
+        msgBox.removeClass('received-image-message').addClass('sent-image-message');
         msgBox.css('display', 'inline-block');
         msgLine.css('text-align', 'right');
         msgLine.append(msgBox);
