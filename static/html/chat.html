@@ -6,23 +6,38 @@
     <title>Chat</title>
     <link href="/css/chat.css" type="text/css" rel="stylesheet"/>
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 </head>
 <body>
     <div class="box">
+        <div class="profile">
+            <span class="material-symbols-outlined" onclick="history.back()">
+                arrow_back
+            </span>
+            <div id="sender"></div>
+        </div>
         <div class="chat">
-            <div id="system"></div>
             <div id="msg"></div>
         </div>
         <div class="send">
             <form id="chatform" enctype="multipart/form-data" onsubmit="return false">
                 <input type="text" id="input_box" contenteditable="true" autocomplete="off">
                 <div id="button">
-                    <label for="fileInput" class="btn btn-sm">Photo</label>
+                    <label for="imageInput">
+                        <span class="material-symbols-outlined">
+                            send
+                        </span>
+                    </label>
+                    <input type="submit" id="imageInput">
+                    <label for="fileInput">
+                        <span class="material-symbols-outlined">
+                            image
+                        </span>
+                    </label>
                     <input type="file" id="fileInput" name="imgs" multiple/>
-                    <input type="submit" class="btn btn-sm" value="Send">
                 </div>
             </form>
         </div>

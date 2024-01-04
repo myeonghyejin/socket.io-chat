@@ -97,10 +97,12 @@ socket.on('GET', (chatMessage) => {
         msgLine.append(msgBox, dateBox);
         msgContainer.append(msgLine);
 
+        const systemMessage = $('<div>').addClass('system').text('대화가 시작되었습니다.');
+        msgContainer.append(systemMessage);
+
         // 모든 메시지를 처리한 후에 스크롤을 맨 아래로 이동
         if (index === chatMessage.length - 1) {
-            console.log($('#msg'))
-            msgContainer.scrollTop(msgContainer.prop('scrollHeight'));
+            $('.chat').scrollTop($('.chat')[0].scrollHeight);
         }
     });
 
@@ -126,15 +128,22 @@ chatForm.addEventListener('submit', function() {
         let msgLine = $('<div class="msgLine">');
         let msgBox = $('<div class="sent-text-message">');
 
+        const now = new Date();
+        const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         msgBox.append(msgText.val());
         msgBox.css('display', 'inline-block');
-
         msgLine.css('text-align', 'right');
-        msgLine.append(msgBox);
+
+        const dateBox = $('<div>').addClass('dateBox').text(formattedTime);
+
+        msgLine.append(msgBox, dateBox);
 
         $('#msg').append(msgLine);
         msgText.val('');
-        chatView.scrollTop = chatView.scrollHeight;
+        $('.chat').animate({
+            scrollTop: $('.chat')[0].scrollHeight
+        }, 'slow');
     }
 });
 
@@ -152,7 +161,9 @@ socket.on('RECEIVE', function(msg) {
         msgLine.append(msgBox);
         $('#msg').append(msgLine);
 
-        chatView.scrollTop = chatView.scrollHeight;
+        $('.chat').animate({
+            scrollTop: $('.chat')[0].scrollHeight
+        }, 'slow');
     }
 });
 
@@ -202,14 +213,21 @@ function displayImages(imagePaths) {
             window.open(this.src);
         };
 
+        const now = new Date();
+        const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         const msgBox = $('<div>').addClass('received-image-message').append(imgWrapper);
         msgBox.removeClass('received-image-message').addClass('sent-image-message');
         msgBox.css('display', 'inline-block');
         msgLine.css('text-align', 'right');
-        msgLine.append(msgBox);
+        const dateBox = $('<div>').addClass('dateBox').text(formattedTime);
+        
+        msgLine.append(msgBox, dateBox);
         msgContainer.append(msgLine);
 
-        msgContainer.scrollTop(msgContainer.prop('scrollHeight'));
+        $('.chat').animate({
+            scrollTop: $('.chat')[0].scrollHeight
+        }, 'slow');
     });
 }
 
@@ -222,5 +240,5 @@ function joinRoom(roomID) {
 // 접속한 룸이 바뀌었을 때
 socket.on('roomChanged', (joinedRoom) => {
     roomID = joinedRoom;
-    // document.getElementById('system').innerHTML = joinedRoom + "에 접속했습니다.";
+    // document.getElementById('system').innerHTML = "대화가 시작되었습니다.";
 });
