@@ -177,7 +177,6 @@ io.on('connection', (socket) => {
                     console.error('Error retrieving latest message IDs:', error);
                 } else {
                     const recentMessageIDs = recentMessages.map(message => message.message_id);
-                    const recentMessagesTimes = recentMessages.map(message => message.created_at);
     
                     let query = `
                         SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
