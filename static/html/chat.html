@@ -17,31 +17,45 @@
             <span class="material-symbols-outlined" onclick="history.back()">
                 arrow_back
             </span>
-            <div id="sender"></div>
+            <div id="receiver"></div>
         </div>
+        <button id="loadPreviousMessages">이전 대화 불러오기</button>
         <div class="chat">
-            <div id="msg"></div>
+            <div id="message"></div>
         </div>
         <div class="send">
-            <form id="chatform" enctype="multipart/form-data" onsubmit="return false">
-                <input type="text" id="input_box" contenteditable="true" autocomplete="off">
+            <form id="form-chat" enctype="multipart/form-data" onsubmit="return false">
+                <input type="text" id="input-text" contenteditable="true" autocomplete="off" placeholder="타인에 대한 존중과 배려를 지켜 주세요!">
                 <div id="button">
-                    <label for="imageInput">
+                    <label for="input-send">
                         <span class="material-symbols-outlined">
                             send
                         </span>
                     </label>
-                    <input type="submit" id="imageInput">
-                    <label for="fileInput">
+                    <input type="submit" id="input-send">
+                    <label for="input-image">
                         <span class="material-symbols-outlined">
                             image
                         </span>
                     </label>
-                    <input type="file" id="fileInput" name="imgs" multiple/>
+                    <input type="file" id="input-image" name="imgs" multiple/>
                 </div>
             </form>
         </div>
     </div>
 </body>
 <script type="text/javascript" src="/js/chat.js"></script>
+<script>
+    const inputText = document.getElementById('input-text');
+
+    // focus 이벤트가 발생했을 때
+    inputText.addEventListener('focus', function() {
+        this.removeAttribute('placeholder');
+    });
+
+    // blur 이벤트가 발생했을 때
+    inputText.addEventListener('blur', function() {
+        this.setAttribute('placeholder', '타인에 대한 존중과 배려를 지켜 주세요!');
+    });
+</script>
 </html>

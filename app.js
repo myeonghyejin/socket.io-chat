@@ -105,8 +105,8 @@ server.listen(4000, function() {
 // app.use("/test", test);
 
 /* 룸 ID 생성 함수 */
-function generateRoomID(senderID, receiverID) {
-    const sortedIDs = [senderID, receiverID].sort().join('-'); // 사용자 ID 정렬하여 결합
+function generateRoomID(sender, receiver) {
+    const sortedIDs = [sender, receiver].sort().join('-'); // 사용자 ID 정렬하여 결합
     return sortedIDs; // 룸 ID 반환
 }
 
@@ -127,11 +127,11 @@ function createChatRoom(roomID) {
 }
 
 io.on('connection', (socket) => {
-    socket.on("LOGIN", async (senderID, receiverID)=>{
-        console.log(senderID, receiverID);
+    socket.on("LOGIN", async (sender, receiver)=>{
+        console.log(sender, receiver);
 
         // 클라이언트로 roomID 전송
-        const roomID = generateRoomID(senderID, receiverID);
+        const roomID = generateRoomID(sender, receiver);
 
         // 현재 소켓의 모든 룸을 나가고 새로운 룸에 조인
         Object.keys(socket.rooms).forEach((room) => {
@@ -149,7 +149,7 @@ io.on('connection', (socket) => {
 
         // DB에서 해당 룸의 메시지 가져와 클라이언트에게 전송
         connection.query(
-            "SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type FROM chat_message cm LEFT JOIN chat_image ci ON cm.message_id = ci.message_id WHERE room_id = ? ORDER BY created_at ASC",
+            "SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type FROM chat_message cm LEFT JOIN chat_image ci ON cm.message_id = ci.message_id WHERE room_id = ? ORDER BY created_at DESC LIMIT 30",
             [roomID],
             (error, results, fields) => {
                 if (error) {
@@ -162,22 +162,77 @@ io.on('connection', (socket) => {
         );
     });
 
+    /* '이전 대화 불러오기' 버튼 클릭 */
+    socket.on('loadPreviousMessages', (data) => {
+        const roomID = data.roomID;
+        const perPage = 30; // 페이지당 보여줄 메시지 수
+        const cursor = data.cursor ? new Date(data.cursor) : null;
+    
+        // 1. 가장 최근 데이터 perPage만큼 조회
+        connection.query(
+            `SELECT message_id, created_at FROM chat_message WHERE room_id = ? ORDER BY created_at DESC LIMIT ?`,
+            [roomID, perPage],
+            (error, recentMessages) => {
+                if (error) {
+                    console.error('Error retrieving latest message IDs:', error);
+                } else {
+                    const recentMessageIDs = recentMessages.map(message => message.message_id);
+                    const recentMessagesTimes = recentMessages.map(message => message.created_at);
+    
+                    let query = `
+                        SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
+                        FROM chat_message cm 
+                        LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
+                        WHERE room_id = ?`;
+    
+                    let params = [roomID];
+    
+                    // 2. 이전 페이지의 마지막 데이터 이후의 데이터를 가져오도록 필터링
+                    if (cursor) {
+                        query += ` AND cm.created_at < ? AND cm.message_id NOT IN (?)`;
+                        params.push(cursor, recentMessageIDs);
+                    } else {
+                        query += ` AND cm.message_id NOT IN (?)`;
+                        params.push(recentMessageIDs);
+                    }
+    
+                    query += ` ORDER BY cm.created_at DESC LIMIT ?`;
+                    params.push(perPage);
+    
+                    connection.query(
+                        query,
+                        params,
+                        (error, results, fields) => {
+                            if (error) {
+                                console.error('Error retrieving previous messages from DB:', error);
+                            } else {
+                                socket.emit('previousMessages', results);
+                                console.log(results);
+                                console.log(results.length);
+                            }
+                        }
+                    );
+                }
+            }
+        );
+    });
+
     /* 메시지 전송 */
     socket.on('SEND', function(messageData) {
-        const { msg, roomID, sender, receiver } = messageData;
+        const { message, roomID, sender, receiver } = messageData;
 
-        console.log('Message received: ' + msg);
+        console.log('Message received: ' + message);
         console.log(messageData);
         
         createChatRoom(roomID);
 
         // socket.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
-        socket.to(roomID).emit('RECEIVE', msg, roomID);
+        socket.to(roomID).emit('RECEIVE', message, roomID);
     
         // DB에 INSERT (parameterized query 사용)
         connection.query(
             "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, ?, now(), 'text')",
-            [roomID, sender, receiver, msg],
+            [roomID, sender, receiver, message],
             (error, results, fields) => {
                 if (error) {
                     // INSERT 중 에러 발생 시 처리
