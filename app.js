@@ -1,9 +1,6 @@
 const express = require('express');
 const http = require('http');
 const socket = require('socket.io');
-const chatUtils = require('./utils/chatUtils');
-const imageUtils = require('./utils/imageUtils');
-const path = require('path');
 
 const app = express();
 app.set('port', process.env.PORT || 4000);
@@ -12,7 +9,13 @@ app.use(express.static(__dirname + '/static'));
 const server = http.createServer(app);
 const io = socket(server);
 
-/* DB Connect */
+const path = require('path');
+
+const notifier = require('node-notifier');
+
+const chatUtils = require('./utils/chatUtils');
+const imageUtils = require('./utils/imageUtils');
+
 const connection = require('./database/connect/maria')
 connection.connect();
 
@@ -37,9 +40,9 @@ app.post('/upload', imageUtils.upload.array('imgs', 10), async (req, res) => {
         res.status(200).json({ imagePaths }); // JSON 응답 반환
         console.log(imagePaths);
         console.log(__dirname);
-    } catch (err) {
-        console.error('이미지 업로드 중 오류 발생:', err);
-        res.status(500).send('이미지 업로드 중 오류 발생');
+    } catch (error) {
+        console.error('Error retrieving upload images:', error);
+        res.status(500).send('이미지를 업로드하지 못했습니다.');
     }
 });
 
@@ -87,6 +90,7 @@ io.on('connection', (socket) => {
             (error, results, fields) => {
                 if (error) {
                     console.error('Error retrieving messages from DB:', error);
+                    socket.emit('errorOccurred', { errorMessage: '대화 내역을 불러오지 못했습니다.' });
                 } else {
                     // 클라이언트에 데이터 전송
                     socket.emit('GET', results); // 가져온 메시지 전송
@@ -110,7 +114,7 @@ io.on('connection', (socket) => {
         connection.query(query, [roomID], (error, result) => {
             if (error) {
                 console.error('Error retrieving oldest message:', error);
-                // 에러를 클라이언트에 보내거나 처리할 수 있습니다.
+                socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
             } else {
                 const oldestMessageDate = result[0].created_at;
                 socket.emit('oldestMessage', { oldestMessageDate: oldestMessageDate });
@@ -132,8 +136,8 @@ io.on('connection', (socket) => {
         
         connection.query(query, [roomID], (error, result) => {
             if (error) {
-                console.error('Error retrieving oldest message:', error);
-                // 에러를 클라이언트에 보내거나 처리할 수 있습니다.
+                console.error('Error retrieving newest message:', error);
+                socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
             } else {
                 const newestMessageDate = result[0].created_at;
                 socket.emit('newestMessage', { newestMessageDate: newestMessageDate });
@@ -154,6 +158,7 @@ io.on('connection', (socket) => {
             (error, recentMessages) => {
                 if (error) {
                     console.error('Error retrieving latest message IDs:', error);
+                    socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
                 } else {
                     const recentMessageIDs = recentMessages.map(message => message.message_id);
     
@@ -183,6 +188,7 @@ io.on('connection', (socket) => {
                         (error, results, fields) => {
                             if (error) {
                                 console.error('Error retrieving previous messages from DB:', error);
+                                socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
                             } else {
                                 socket.emit('previousMessages', results);
                                 console.log(results);
@@ -213,11 +219,9 @@ io.on('connection', (socket) => {
             [roomID, sender, receiver, message],
             (error, results, fields) => {
                 if (error) {
-                    // INSERT 중 에러 발생 시 처리
                     console.error('Error inserting message:', error);
-                    // 에러 핸들링 또는 적절한 조치
+                    socket.emit('errorOccurred', { errorMessage: '메시지를 전송하지 못했습니다.' });
                 } else {
-                    // INSERT 성공 시 처리
                     console.log('Message inserted successfully');
                 }
             }
@@ -238,6 +242,13 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
         // 룸을 성공적으로 전환했다는 신호 발송
         io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
+    });
+
+    socket.on('disconnect', () => {
+        notifier.notify({
+            title: 'disconnect',
+            message: '연결이 끊겼습니다. 새로고침하세요.',
+          });
     });
 
 });

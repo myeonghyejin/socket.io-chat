@@ -18,6 +18,18 @@
                 arrow_back
             </span>
             <div id="receiver"></div>
+            <div id="scrollButtonsContainer">
+                <div class="scrollButton" id="upward">
+                    <span class="material-symbols-outlined">
+                        arrow_upward
+                    </span>
+                </div>
+                <div class="scrollButton" id="downward">
+                    <span class="material-symbols-outlined">
+                        arrow_downward
+                    </span>
+                </div>
+            </div>
         </div>
         <button id="loadPreviousMessages">이전 대화 불러오기</button>
         <div class="chat">
@@ -45,17 +57,4 @@
     </div>
 </body>
 <script type="text/javascript" src="/js/chat.js"></script>
-<script>
-    const inputText = document.getElementById('input-text');
-
-    // focus 이벤트가 발생했을 때
-    inputText.addEventListener('focus', function() {
-        this.removeAttribute('placeholder');
-    });
-
-    // blur 이벤트가 발생했을 때
-    inputText.addEventListener('blur', function() {
-        this.setAttribute('placeholder', '타인에 대한 존중과 배려를 지켜 주세요!');
-    });
-</script>
 </html>

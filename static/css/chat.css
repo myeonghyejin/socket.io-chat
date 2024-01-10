@@ -6,6 +6,13 @@
   font-style: normal;
 }
 
+/* 변수 */
+:root {
+    --main-color: palevioletred;
+    --sub-color: grey;
+}
+
+
 html, body {
   height: 100%;
   margin: 0;
@@ -34,7 +41,7 @@ html, body {
   justify-content: center;
 }
 .profile > span:hover {
-  color: palevioletred;
+  color: var(--main-color);
 }
 #receiver {
   font-family: 'Pretendard-Regular';
@@ -42,7 +49,35 @@ html, body {
   font-weight: bold;
   text-align: center;
   color: #333;
-} 
+}
+#scrollButtonsContainer {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 15px;
+}
+.scrollButton {
+    display: flex; /* 내부 요소를 수평으로 배치하기 위해 추가 */
+    align-items: center; /* 내부 요소들을 세로 가운데로 정렬 */
+    cursor: pointer;
+    border: 1px solid gray;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    margin: 0 2px;
+}
+.scrollButton > span {
+    color: gray;
+    font-size: 20px;
+    margin: auto;
+}
+.scrollButton:hover {
+    background-color: var(--main-color);
+    border: 1px solid var(--main-color);
+}
+.scrollButton:hover > span {
+    color: #fff;
+}
 
 #loadPreviousMessages {
   font-family: 'Pretendard-Regular';
@@ -53,7 +88,7 @@ html, body {
   color: #333;
 }
 #loadPreviousMessages:hover {
-  color: palevioletred;
+  color: var(--main-color);
 }
 
 .chat {
@@ -79,9 +114,9 @@ html, body {
     margin: 15px auto;
     font-size: 12px;
     text-align: center;
-    color: palevioletred;;
+    color: var(--main-color);
     width: max-content;
-    border: 1px solid palevioletred;
+    border: 1px solid var(--main-color);
     border-radius: 20px;
   }
 #message {
@@ -91,7 +126,7 @@ html, body {
   margin: 15px;
 }
 .sent-text-message {
-  background-color: palevioletred;
+  background-color: var(--main-color);
   font-weight: 500;
   font-family: 'Pretendard-Regular';
   padding: 10px 15px;
@@ -101,7 +136,7 @@ html, body {
   color: white;
 }
 .received-text-message {
-  background: grey;
+  background: var(--sub-color);
   font-family: 'Pretendard-Regular';
   padding: 10px 15px;
   font-size: 0.9em;
@@ -159,7 +194,6 @@ html, body {
   margin-right: 5px;
   font-family: 'Pretendard-Regular';
   letter-spacing: -0.5px;
-  color: white;
   height: 100%; /* 부모 요소인 #form-chat 같은 높이를 가지도록 설정 */
 }
 #form-chat input[type="text"]:focus {
@@ -180,7 +214,7 @@ html, body {
   font-size: 20px;
 }
 #button > label:hover {
-  color: palevioletred;
+  color: var(--main-color);;
 }
 /* 첫 번째 label은 왼쪽 여백 없이 */
 #button > label:first-child {

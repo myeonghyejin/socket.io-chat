@@ -1,3 +1,4 @@
+const inputText = document.getElementById('input-text');
 const formChat = document.getElementById('form-chat');
 const messageContainer = $('#message');
 
@@ -20,6 +21,27 @@ socket.on('news', function (data) {
 
 /////////////////////////////////////////////////////////
 
+// 맨 위 메시지로 스크롤 애니메이션
+$('#upward').on('click', function() {
+    $('.chat').animate({ scrollTop: 0 }, 'slow');
+});
+
+// 맨 아래 메시지로 스크롤 애니메이션
+$('#downward').on('click', function() {
+    let $chat = $('.chat');
+    $chat.animate({ scrollTop: $chat[0].scrollHeight }, 'slow');
+});
+
+// focus 이벤트가 발생했을 때
+inputText.addEventListener('focus', function() {
+    this.removeAttribute('placeholder');
+});
+
+// blur 이벤트가 발생했을 때
+inputText.addEventListener('blur', function() {
+    this.setAttribute('placeholder', '타인에 대한 존중과 배려를 지켜 주세요!');
+});
+
 // 날짜 비교
 function compareDatesWithoutTime(dateA, dateB) {
     return dateA.getFullYear() === dateB.getFullYear() &&
@@ -28,34 +50,140 @@ function compareDatesWithoutTime(dateA, dateB) {
 }
 
 // 날짜 라벨
-function createAndPrependDateLabel(date) {
-    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleDateString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-    messageContainer.prepend(dateLabel);
+function createDateLabel(date, prepend = false) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleDateString('ko-KR', options));
+    
+    if (prepend) {
+        messageContainer.prepend(dateLabel);
+    } else {
+        messageContainer.append(dateLabel);
+    }
 }
 
-function createAndAppendDateLabel(date) {
-    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-    messageContainer.append(dateLabel);
+// 메시지 표시
+function createMessageBox(message, sender, messageLine) {
+    let messageBox;
+
+    if (message.type === 'text') {
+        messageBox = $('<div>').addClass('received-text-message').text(message.message);
+
+        if (message.sender === sender) {
+            messageBox.removeClass('received-text-message').addClass('sent-text-message');
+            messageBox.css('display', 'inline-block');
+            messageLine.css('text-align', 'right');
+        } else {
+            messageBox.css('display', 'inline-block');
+        }
+
+    } else if (message.type === 'image') {
+        const imgElement = document.createElement('img');
+        imgElement.src = message.message; // 이미지 경로 설정
+        imgElement.classList.add('uploaded-image');
+
+        const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
+        imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
+
+        imgElement.onclick = function() {
+            window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
+        };
+
+        messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
+
+        if (message.sender === sender) {
+            messageBox.removeClass('received-image-message').addClass('sent-image-message');
+            messageBox.css('display', 'inline-block');
+            messageLine.css('text-align', 'right');
+        } else {
+            messageBox.css('display', 'inline-block');
+        }
+
+    }
+
+    return messageBox;
 }
 
-// 메시지에 날짜 표시
+// 메시지 시간 표시
 function createAndAppendDateBox(date) {
-    const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
+    const options = { hour: '2-digit', minute: '2-digit' };
     const formattedDate = new Date(date).toLocaleString('ko-KR', options);
     const dateBox = $('<div>').addClass('dateBox').text(formattedDate);
 
     return dateBox;
 }
 
-// DB에서 해당 방(room)의 가장 오래된 메시지를 가져옴
+// 이미지 출력
+function displayImages(imagePaths) {
+    const messageLine = $('<div>').addClass('message-line');
+
+    imagePaths.forEach(imagePath => {
+        const imgElement = document.createElement('img');
+        imgElement.src = imagePath;
+        imgElement.classList.add('uploaded-image');
+
+        const imgWrapper = $('<div>').addClass('image-wrapper');
+        imgWrapper.append(imgElement);
+
+        imgElement.onclick = function() {
+            window.open(this.src);
+        };
+
+        const messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
+        messageBox.removeClass('received-image-message').addClass('sent-image-message');
+        messageBox.css('display', 'inline-block');
+        messageLine.css('text-align', 'right');
+
+        const dateBox = createAndAppendDateBox(new Date());
+        
+        socket.emit('loadNewestMessage', { roomID: roomID });
+
+        messageLine.append(messageBox, dateBox);
+        messageContainer.append(messageLine);
+
+        $('.chat').animate({ scrollTop: $('.chat')[0].scrollHeight }, 'slow');
+    });
+}
+
+// 이미지 업로드
+function uploadImages(images) {
+    const formData = new FormData();
+    const xhr = new XMLHttpRequest();
+
+    formData.append('roomID', roomID);
+    formData.append('sender', sender);
+    formData.append('receiver', receiver);
+
+    for (let i = 0; i < images.length; i++) {
+        formData.append('imgs', images[i]);
+    }
+
+    xhr.open('POST', '/upload', true);
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            displayImages(data.imagePaths); // 이미지를 표시하는 함수 호출
+        } else {
+            // 오류 응답 처리
+            const errorMessage = xhr.responseText;
+            displayErrorMessage(errorMessage); // 사용자에게 오류 메시지 표시
+        }
+    };
+
+    xhr.send(formData);
+}
+
+// DB에서 해당 방(room)의 가장 오래된 메시지를 가져온 후 최상단에 날짜 라벨 생성
+// 채팅방 최초 접속 시에만 작동
 socket.on('oldestMessage', (data) => {
     oldestMessageDate = new Date(data.oldestMessageDate);
     oldestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
     
-    createAndPrependDateLabel(oldestMessageDate);
+    createDateLabel(oldestMessageDate, true);
 });
 
-// DB에서 해당 방(room)의 가장 최신 메시지를 가져옴
+// DB에서 해당 방(room)의 가장 최신 메시지를 가져온 후 현재와 날짜 비교
+// 날짜가 다를 때만 날짜 라벨 생성
 socket.on('newestMessage', (data) => {
     newestMessageDate = new Date(data.newestMessageDate);
     newestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
@@ -64,7 +192,21 @@ socket.on('newestMessage', (data) => {
     now.setHours(0, 0, 0, 0);
 
     if(!compareDatesWithoutTime(now, newestMessageDate)) {
-        createAndAppendDateLabel(newestMessageDate);
+        createDateLabel(newestMessageDate);
+    }
+});
+
+// 에러 표시 (json)
+function displayErrorMessage(errorMessage) {
+    if (confirm(errorMessage + "\n페이지를 새로고침하시겠습니까?")) {
+        location.reload();
+    }
+}
+
+// 에러 표시 (socket)
+socket.on('errorOccurred', (errorMessage) => {
+    if (confirm(errorMessage + "\n페이지를 새로고침하시겠습니까?")) {
+        location.reload();
     }
 });
 
@@ -125,7 +267,6 @@ socket.on('GET', (messages) => {
 
         messages.forEach((message, index) => {
             const messageLine = $('<div>').addClass('message-line');
-            let messageBox;
 
             const date = new Date(message.created_at);
             const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()); // 시간 정보 제외한 날짜 정보만 가지도록 설정
@@ -138,42 +279,8 @@ socket.on('GET', (messages) => {
                 prevMessageDate = messageDate;
             }
 
+            const messageBox = createMessageBox(message, sender, messageLine);
             const dateBox = createAndAppendDateBox(date);
-
-            if (message.type === 'text') {
-                messageBox = $('<div>').addClass('received-text-message').text(message.message);
-
-                if (message.sender === sender) {
-                    messageBox.removeClass('received-text-message').addClass('sent-text-message');
-                    messageBox.css('display', 'inline-block');
-                    messageLine.css('text-align', 'right');
-                } else {
-                    messageBox.css('display', 'inline-block');
-                }
-
-            } else if (message.type === 'image') {
-                const imgElement = document.createElement('img');
-                imgElement.src = message.message; // 이미지 경로 설정
-                imgElement.classList.add('uploaded-image');
-
-                const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
-                imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
-
-                imgElement.onclick = function() {
-                    window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
-                };
-
-                messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-
-                if (message.sender === sender) {
-                    messageBox.removeClass('received-image-message').addClass('sent-image-message');
-                    messageBox.css('display', 'inline-block');
-                    messageLine.css('text-align', 'right');
-                } else {
-                    messageBox.css('display', 'inline-block');
-                }
-
-            }
                 
             messageLine.append(messageBox, dateBox);
             messageContainer.append(messageLine);
@@ -184,15 +291,17 @@ socket.on('GET', (messages) => {
                 messageContainer.append(systemMessage);
             }
         });
-        console.log("messages", messages);
+
+        // 초기 메시지 중 가장 오래된 메시지의 날짜 데이터 추출
+        oldestMessageTime = messages[messages.length - perPage].created_at;
+
     } else {
         // 대화 내역이 없는 경우
         const systemMessage = $('<div>').addClass('system-label').text('대화가 시작되었습니다.');
         messageContainer.append(systemMessage);
-    }
 
-    // 초기 메시지 중 가장 오래된 메시지의 날짜 데이터 추출
-    oldestMessageTime = messages[messages.length - perPage].created_at;
+        oldestMessageTime = null;
+    }
 
     $('.chat').scrollTop($('.chat')[0].scrollHeight);
 });
@@ -221,7 +330,6 @@ socket.on('previousMessages', (previousMessages) => {
 
     previousMessages.forEach((message) => {
         const messageLine = $('<div>').addClass('message-line');
-        let messageBox;
 
         const currentMessageDate = new Date(message.created_at);
     
@@ -238,40 +346,8 @@ socket.on('previousMessages', (previousMessages) => {
         prevMessageDate = currentMessageDate;
 
         const date = new Date(message.created_at);
+        const messageBox = createMessageBox(message, sender, messageLine);
         const dateBox = createAndAppendDateBox(date);
-
-        if (message.type === 'text') {
-            messageBox = $('<div>').addClass('received-text-message').text(message.message);
-
-            if (message.sender === sender) {
-                messageBox.removeClass('received-text-message').addClass('sent-text-message');
-                messageBox.css('display', 'inline-block');
-                messageLine.css('text-align', 'right');
-            } else {
-                messageBox.css('display', 'inline-block');
-            }
-        } else if (message.type === 'image') {
-            const imgElement = document.createElement('img');
-            imgElement.src = message.message; // 이미지 경로 설정
-            imgElement.classList.add('uploaded-image');
-
-            const imgWrapper = $('<div>').addClass('image-wrapper'); // 외부 div 생성
-            imgWrapper.append(imgElement); // 이미지를 외부 div 안에 추가
-
-            imgElement.onclick = function() {
-                window.open(this.src); // 이미지 클릭 시 이미지 주소를 새 창으로 열기
-            };
-
-            messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-
-            if (message.sender === sender) {
-                messageBox.removeClass('received-image-message').addClass('sent-image-message');
-                messageBox.css('display', 'inline-block');
-                messageLine.css('text-align', 'right');
-            } else {
-                messageBox.css('display', 'inline-block');
-            }
-        }
             
         messageLine.append(messageBox, dateBox);
         messageContainer.prepend(messageLine); // 상단에 추가
@@ -322,9 +398,7 @@ formChat.addEventListener('submit', function() {
 
         $('#message').append(messageLine);
         text.val('');
-        $('.chat').animate({
-            scrollTop: $('.chat')[0].scrollHeight
-        }, 'slow');
+        $('.chat').animate({ scrollTop: $('.chat')[0].scrollHeight }, 'slow');
     }
 });
 
@@ -347,74 +421,15 @@ socket.on('RECEIVE', function(message) {
         messageLine.append(messageBox, dateBox);
         $('#message').append(messageLine);
 
-        $('.chat').animate({
-            scrollTop: $('.chat')[0].scrollHeight
-        }, 'slow');
+        $('.chat').animate({ scrollTop: $('.chat')[0].scrollHeight }, 'slow');
     }
 });
 
-// 이미지 전송
+// 이미지 송신
 document.getElementById('input-image').addEventListener('change', function() {
     const images = document.getElementById('input-image').files;
     uploadImages(images);
 });
-
-function uploadImages(images) {
-    const formData = new FormData();
-    const xhr = new XMLHttpRequest();
-
-    formData.append('roomID', roomID);
-    formData.append('sender', sender);
-    formData.append('receiver', receiver);
-
-    for (let i = 0; i < images.length; i++) {
-        formData.append('imgs', images[i]);
-    }
-
-    xhr.open('POST', '/upload', true);
-
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            displayImages(data.imagePaths); // 이미지를 표시하는 함수 호출
-        }
-    };
-
-    xhr.send(formData);
-}
-
-function displayImages(imagePaths) {
-    const messageLine = $('<div>').addClass('message-line');
-
-    imagePaths.forEach(imagePath => {
-        const imgElement = document.createElement('img');
-        imgElement.src = imagePath;
-        imgElement.classList.add('uploaded-image');
-
-        const imgWrapper = $('<div>').addClass('image-wrapper');
-        imgWrapper.append(imgElement);
-
-        imgElement.onclick = function() {
-            window.open(this.src);
-        };
-
-        const messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-        messageBox.removeClass('received-image-message').addClass('sent-image-message');
-        messageBox.css('display', 'inline-block');
-        messageLine.css('text-align', 'right');
-
-        const dateBox = createAndAppendDateBox(new Date());
-        
-        socket.emit('loadNewestMessage', { roomID: roomID });
-
-        messageLine.append(messageBox, dateBox);
-        messageContainer.append(messageLine);
-
-        $('.chat').animate({
-            scrollTop: $('.chat')[0].scrollHeight
-        }, 'slow');
-    });
-}
 
 // 룸 접속 버튼 클릭 시
 function joinRoom(roomID) {
