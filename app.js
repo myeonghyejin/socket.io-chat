@@ -148,9 +148,20 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('roomChanged', roomID);
 
         // DB에서 해당 룸의 메시지 가져와 클라이언트에게 전송
+        const perPage = 30;
+
         connection.query(
-            "SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type FROM chat_message cm LEFT JOIN chat_image ci ON cm.message_id = ci.message_id WHERE room_id = ? ORDER BY created_at DESC LIMIT 30",
-            [roomID],
+            `SELECT *
+            FROM (
+                SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
+                FROM chat_message cm 
+                LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
+                WHERE room_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            ) AS sub
+            ORDER BY created_at ASC`,
+            [roomID, perPage],
             (error, results, fields) => {
                 if (error) {
                     console.error('Error retrieving messages from DB:', error);
@@ -160,6 +171,29 @@ io.on('connection', (socket) => {
                 }
             }
         );
+    });
+
+    socket.on('loadOldestMessage', (data) => {
+        const roomID = data.roomID;
+        
+        // DB에서 해당 방(room)의 가장 오래된 메시지를 가져오는 쿼리
+        const query = `
+            SELECT created_at
+            FROM chat_message
+            WHERE room_id = ?
+            ORDER BY created_at ASC
+            LIMIT 1
+        `;
+        
+        connection.query(query, [roomID], (error, result) => {
+            if (error) {
+                console.error('Error retrieving oldest message:', error);
+                // 에러를 클라이언트에 보내거나 처리할 수 있습니다.
+            } else {
+                const oldestMessageDate = result[0].created_at;
+                socket.emit('oldestMessage', { oldestMessageDate: oldestMessageDate });
+            }
+        });
     });
 
     /* '이전 대화 불러오기' 버튼 클릭 */
