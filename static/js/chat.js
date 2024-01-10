@@ -61,6 +61,11 @@ function createDateLabel(date, prepend = false) {
     }
 }
 
+// 메시지가 화면에 표시될 때 서버에 읽음 상태 전달
+function sendMessageReadStatus(messageID) {
+    socket.emit('messageRead', messageID);
+}
+
 // 메시지 표시
 function createMessageBox(message, sender, messageLine) {
     let messageBox;
@@ -237,8 +242,8 @@ document.addEventListener('DOMContentLoaded', function() {
         receiver = window.prompt("송신자 아이디를 입력하세요.");
         console.log(receiver);
 
-        // 아이디를 서버로 전달
-        socket.emit("LOGIN", sender, receiver, (res) => {
+        // 유저 정보를 서버로 보냄
+        socket.emit('sendUserInformation', sender, receiver, (res) => {
             console.log(res);
         });
     };
@@ -250,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // 채팅방 입장 시 이전 대화 내역 출력
-socket.on('GET', (messages) => {
+socket.on('initialChatLoad', (messages) => {
 
     // 이전 날짜 라벨을 기억하기 위한 변수
     let prevMessageDate;
@@ -290,6 +295,9 @@ socket.on('GET', (messages) => {
                 const systemMessage = $('<div>').addClass('system-label').text('대화가 시작되었습니다.');
                 messageContainer.append(systemMessage);
             }
+
+            // 읽음 처리
+            sendMessageReadStatus(message.message_id)
         });
 
         // 초기 메시지 중 가장 오래된 메시지의 날짜 데이터 추출
@@ -351,6 +359,9 @@ socket.on('previousMessages', (previousMessages) => {
             
         messageLine.append(messageBox, dateBox);
         messageContainer.prepend(messageLine); // 상단에 추가
+        
+        // 읽음 처리
+        sendMessageReadStatus(message.message_id)
     });
 
     if (previousMessages.length > 0) {
@@ -381,7 +392,7 @@ formChat.addEventListener('submit', function() {
             receiver: receiver
         };
 
-        socket.emit('SEND', messageData);
+        socket.emit('sendMessage', messageData);
 
         let messageLine = $('<div class="message-line">');
         let messageBox = $('<div class="sent-text-message">');
@@ -431,13 +442,7 @@ document.getElementById('input-image').addEventListener('change', function() {
     uploadImages(images);
 });
 
-// 룸 접속 버튼 클릭 시
-function joinRoom(roomID) {
-    // 클라이언트에서 방 접속 신호를 서버로 발송
-    socket.emit('joinRoom', roomID);
-}
-
 // 접속한 룸이 바뀌었을 때
-socket.on('roomChanged', (joinedRoom) => {
-    roomID = joinedRoom;
+socket.on('enteredChatRoom', (newlyEnteredRoom) => {
+    roomID = newlyEnteredRoom;
 });

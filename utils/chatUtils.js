@@ -14,7 +14,7 @@ function createChatRoom(roomID) {
         (error, results, fields) => {
             if (error) {
                 console.error('Error creating chat room:', error);
-                // 에러 핸들링 또는 적절한 조치
+                socket.emit('errorOccurred', { errorMessage: '채팅방에 접속하지 못했습니다.' });
             } else {
                 console.log('Chat room created successfully');
             }

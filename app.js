@@ -3,7 +3,7 @@ const http = require('http');
 const socket = require('socket.io');
 
 const app = express();
-app.set('port', process.env.PORT || 4000);
+app.set('port', process.env.PORT || 80);
 app.use(express.static(__dirname + '/static'));
 
 const server = http.createServer(app);
@@ -47,12 +47,14 @@ app.post('/upload', imageUtils.upload.array('imgs', 10), async (req, res) => {
 });
 
 /* 서버 시작 */
-server.listen(4000, function() {
-    console.log('listening on *:4000');
+server.listen(80, function() {
+    console.log('listening on *:80');
 });
 
 io.on('connection', (socket) => {
-    socket.on("LOGIN", async (sender, receiver)=>{
+
+    // 클라이언트가 보낸 유저 정보를 받음
+    socket.on('sendUserInformation', async (sender, receiver)=>{
         console.log(sender, receiver);
 
         // 클라이언트로 roomID 전송
@@ -65,35 +67,34 @@ io.on('connection', (socket) => {
             }
         });
 
-        socket.join(roomID); // 선택한 룸에 조인
-
+        socket.join(roomID); // 현재 소켓을 선택한 채팅방에 조인
         console.log(`Socket ${socket.id} joined room ${roomID}`);
 
-        // 룸을 성공적으로 전환했다는 신호 발송
-        io.to(socket.id).emit('roomChanged', roomID);
+        // 현재 소켓에 enteredChatRoom 이벤트를 보내고, 새로운 채팅방의 정보를 전송
+        io.to(socket.id).emit('enteredChatRoom', roomID);
 
-        // DB에서 해당 룸의 메시지 가져와 클라이언트에게 전송
+        // DB에서 해당 채팅방의 메시지를 가져와 클라이언트에게 전송
+        const query = `SELECT *
+        FROM (
+            SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
+            FROM chat_message cm 
+            LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
+            WHERE room_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        ) AS sub
+        ORDER BY created_at ASC`
         const perPage = 30;
 
         connection.query(
-            `SELECT *
-            FROM (
-                SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
-                FROM chat_message cm 
-                LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
-                WHERE room_id = ?
-                ORDER BY created_at DESC
-                LIMIT ?
-            ) AS sub
-            ORDER BY created_at ASC`,
+            query,
             [roomID, perPage],
             (error, results, fields) => {
                 if (error) {
                     console.error('Error retrieving messages from DB:', error);
                     socket.emit('errorOccurred', { errorMessage: '대화 내역을 불러오지 못했습니다.' });
                 } else {
-                    // 클라이언트에 데이터 전송
-                    socket.emit('GET', results); // 가져온 메시지 전송
+                    socket.emit('initialChatLoad', results);
                 }
             }
         );
@@ -111,12 +112,15 @@ io.on('connection', (socket) => {
             LIMIT 1
         `;
         
-        connection.query(query, [roomID], (error, result) => {
+        connection.query(
+            query,
+            [roomID],
+            (error, results, fields) => {
             if (error) {
                 console.error('Error retrieving oldest message:', error);
                 socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
             } else {
-                const oldestMessageDate = result[0].created_at;
+                const oldestMessageDate = results[0].created_at;
                 socket.emit('oldestMessage', { oldestMessageDate: oldestMessageDate });
             }
         });
@@ -134,12 +138,15 @@ io.on('connection', (socket) => {
             LIMIT 1
         `;
         
-        connection.query(query, [roomID], (error, result) => {
+        connection.query(
+            query,
+            [roomID],
+            (error, results, fields) => {
             if (error) {
                 console.error('Error retrieving newest message:', error);
                 socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
             } else {
-                const newestMessageDate = result[0].created_at;
+                const newestMessageDate = results[0].created_at;
                 socket.emit('newestMessage', { newestMessageDate: newestMessageDate });
             }
         });
@@ -155,12 +162,12 @@ io.on('connection', (socket) => {
         connection.query(
             `SELECT message_id, created_at FROM chat_message WHERE room_id = ? ORDER BY created_at DESC LIMIT ?`,
             [roomID, perPage],
-            (error, recentMessages) => {
+            (error, results, fields) => {
                 if (error) {
                     console.error('Error retrieving latest message IDs:', error);
                     socket.emit('errorOccurred', { errorMessage: '메시지를 불러오지 못했습니다.' });
                 } else {
-                    const recentMessageIDs = recentMessages.map(message => message.message_id);
+                    const recentMessageIDs = results.map(message => message.message_id);
     
                     let query = `
                         SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
@@ -201,8 +208,32 @@ io.on('connection', (socket) => {
         );
     });
 
+    /* 메시지 읽음 처리 */
+    socket.on('messageRead', (messageID) => {
+        const query = 
+        `UPDATE chat_message
+        SET read_or_not = 'read'
+        WHERE message_id = ?`;
+
+        console.log('Message ID:', messageID);
+
+        connection.query(
+            query,
+            [messageID],
+            (error, results, fields) => {
+                if (error) {
+                    console.error('Error updating read status:', error);
+                    socket.emit('errorOccurred', { errorMessage: '읽음 상태를 업데이트하지 못했습니다.' });
+                } else {
+                    console.log('Read status updated successfully');
+                }
+            }
+        );
+        console.log('Update query executed');
+    });
+
     /* 메시지 전송 */
-    socket.on('SEND', function(messageData) {
+    socket.on('sendMessage', function(messageData) {
         const { message, roomID, sender, receiver } = messageData;
 
         console.log('Message received: ' + message);
@@ -226,22 +257,6 @@ io.on('connection', (socket) => {
                 }
             }
         )
-    });
-    
-    /* 룸 전환 신호 */
-    socket.on('joinRoom', (roomToJoin) => {
-        const currentRooms = Object.keys(socket.rooms);
-        currentRooms.forEach((room) => {
-            if (room !== socket.id) {
-                socket.leave(room); // 모든 룸에서 나가고
-            }
-        });
-    
-        socket.join(roomToJoin); // 선택한 룸에 조인
-    
-        console.log(`Socket ${socket.id} joined room ${roomToJoin}`);
-        // 룸을 성공적으로 전환했다는 신호 발송
-        io.to(socket.id).emit('roomChanged', roomToJoin); // 클라이언트로 roomToJoin 값을 보내 줌
     });
 
     socket.on('disconnect', () => {
