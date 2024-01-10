@@ -173,10 +173,10 @@ io.on('connection', (socket) => {
         );
     });
 
+    // DB에서 해당 방(room)의 가장 오래된 메시지를 가져옴
     socket.on('loadOldestMessage', (data) => {
         const roomID = data.roomID;
         
-        // DB에서 해당 방(room)의 가장 오래된 메시지를 가져오는 쿼리
         const query = `
             SELECT created_at
             FROM chat_message
@@ -192,6 +192,29 @@ io.on('connection', (socket) => {
             } else {
                 const oldestMessageDate = result[0].created_at;
                 socket.emit('oldestMessage', { oldestMessageDate: oldestMessageDate });
+            }
+        });
+    });
+
+    // DB에서 해당 방(room)의 가장 최신 메시지를 가져옴
+    socket.on('loadNewestMessage', (data) => {
+        const roomID = data.roomID;
+        
+        const query = `
+            SELECT created_at
+            FROM chat_message
+            WHERE room_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+        
+        connection.query(query, [roomID], (error, result) => {
+            if (error) {
+                console.error('Error retrieving oldest message:', error);
+                // 에러를 클라이언트에 보내거나 처리할 수 있습니다.
+            } else {
+                const newestMessageDate = result[0].created_at;
+                socket.emit('newestMessage', { newestMessageDate: newestMessageDate });
             }
         });
     });

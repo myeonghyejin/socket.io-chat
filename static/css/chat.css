@@ -60,15 +60,30 @@ html, body {
   flex: 1; /* .send에 남은 공간을 모두 할당 */
   overflow-y: auto; /* 채팅창이 넘칠 때 스크롤 생성 */
 }
-.system {
+.system-label {
   font-family: 'Pretendard-Regular';
   font-weight: bold;
-  padding: 10px;
-  margin: auto;
-  font-size: 14px;
+  padding: 8px 15px;
+  margin: 15px auto;
+  font-size: 12px;
   text-align: center;
-  color: #333;
+  background-color: #333;
+  color: #fff;
+  width: max-content;
+  border-radius: 20px;
 }
+.date-label {
+    font-family: 'Pretendard-Regular';
+    font-weight: bold;
+    padding: 8px 15px;
+    margin: 15px auto;
+    font-size: 12px;
+    text-align: center;
+    color: palevioletred;;
+    width: max-content;
+    border: 1px solid palevioletred;
+    border-radius: 20px;
+  }
 #message {
   margin: auto;
 }
