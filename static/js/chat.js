@@ -8,6 +8,8 @@ let roomID;
 let cursor = null;
 let perPage = 30; // 페이지당 보여줄 메시지 수
 
+/////////////////////////////////////////////////////////
+
 let socket = io();
 socket.on('news', function (data) {
     console.log(data);
@@ -16,7 +18,59 @@ socket.on('news', function (data) {
     });
 });
 
+/////////////////////////////////////////////////////////
 
+// 날짜 비교
+function compareDatesWithoutTime(dateA, dateB) {
+    return dateA.getFullYear() === dateB.getFullYear() &&
+           dateA.getMonth() === dateB.getMonth() &&
+           dateA.getDate() === dateB.getDate();
+}
+
+// 날짜 라벨
+function createAndPrependDateLabel(date) {
+    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleDateString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    messageContainer.prepend(dateLabel);
+}
+
+function createAndAppendDateLabel(date) {
+    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    messageContainer.append(dateLabel);
+}
+
+// 메시지에 날짜 표시
+function createAndAppendDateBox(date) {
+    const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
+    const formattedDate = new Date(date).toLocaleString('ko-KR', options);
+    const dateBox = $('<div>').addClass('dateBox').text(formattedDate);
+
+    return dateBox;
+}
+
+// DB에서 해당 방(room)의 가장 오래된 메시지를 가져옴
+socket.on('oldestMessage', (data) => {
+    oldestMessageDate = new Date(data.oldestMessageDate);
+    oldestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
+    
+    createAndPrependDateLabel(oldestMessageDate);
+});
+
+// DB에서 해당 방(room)의 가장 최신 메시지를 가져옴
+socket.on('newestMessage', (data) => {
+    newestMessageDate = new Date(data.newestMessageDate);
+    newestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    if(!compareDatesWithoutTime(now, newestMessageDate)) {
+        createAndAppendDateLabel(newestMessageDate);
+    }
+});
+
+/////////////////////////////////////////////////////////
+
+// 채팅방 입장
 document.addEventListener('DOMContentLoaded', function() {
     const chat = document.querySelector('.chat');
     const send = document.querySelector('.send');
@@ -52,44 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('receiver').innerText = receiver;
 });
 
-// 날짜 비교
-function compareDatesWithoutTime(dateA, dateB) {
-    return dateA.getFullYear() === dateB.getFullYear() &&
-           dateA.getMonth() === dateB.getMonth() &&
-           dateA.getDate() === dateB.getDate();
-}
-
-// 날짜 라벨
-function prependDateLabel(date) {
-    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleDateString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-    messageContainer.prepend(dateLabel);
-}
-
-function appendDateLabel(date) {
-    const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-    messageContainer.append(dateLabel);
-}
-
-// DB에서 해당 방(room)의 가장 오래된 메시지를 가져옴
-socket.on('oldestMessage', (data) => {
-    oldestMessageDate = new Date(data.oldestMessageDate);
-    oldestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
-    
-    prependDateLabel(oldestMessageDate);
-});
-
-// DB에서 해당 방(room)의 가장 최신 메시지를 가져옴
-socket.on('newestMessage', (data) => {
-    newestMessageDate = new Date(data.newestMessageDate);
-    newestMessageDate.setHours(0, 0, 0, 0); // 시간 정보를 0으로 설정하여 시간을 무시
-
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    if(!compareDatesWithoutTime(now, newestMessageDate)) {
-        appendDateLabel(newestMessageDate);
-    }
-});
 
 // 채팅방 입장 시 이전 대화 내역 출력
 socket.on('GET', (messages) => {
@@ -122,14 +138,10 @@ socket.on('GET', (messages) => {
                 prevMessageDate = messageDate;
             }
 
-            const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-            const formattedDateTime = date.toLocaleString('ko-KR', options);
-
-            let dateBox;
+            const dateBox = createAndAppendDateBox(date);
 
             if (message.type === 'text') {
                 messageBox = $('<div>').addClass('received-text-message').text(message.message);
-                dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
 
                 if (message.sender === sender) {
                     messageBox.removeClass('received-text-message').addClass('sent-text-message');
@@ -152,7 +164,6 @@ socket.on('GET', (messages) => {
                 };
 
                 messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-                dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
 
                 if (message.sender === sender) {
                     messageBox.removeClass('received-image-message').addClass('sent-image-message');
@@ -208,7 +219,7 @@ socket.on('previousMessages', (previousMessages) => {
 
     let prevMessageDate = null; // 이전 메시지의 날짜를 저장하는 변수
 
-    previousMessages.forEach((message, index) => {
+    previousMessages.forEach((message) => {
         const messageLine = $('<div>').addClass('message-line');
         let messageBox;
 
@@ -227,14 +238,10 @@ socket.on('previousMessages', (previousMessages) => {
         prevMessageDate = currentMessageDate;
 
         const date = new Date(message.created_at);
-        const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-        const formattedDateTime = date.toLocaleString('ko-KR', options);
-
-        let dateBox;
+        const dateBox = createAndAppendDateBox(date);
 
         if (message.type === 'text') {
             messageBox = $('<div>').addClass('received-text-message').text(message.message);
-            dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
 
             if (message.sender === sender) {
                 messageBox.removeClass('received-text-message').addClass('sent-text-message');
@@ -256,7 +263,6 @@ socket.on('previousMessages', (previousMessages) => {
             };
 
             messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
-            dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
 
             if (message.sender === sender) {
                 messageBox.removeClass('received-image-message').addClass('sent-image-message');
@@ -284,8 +290,7 @@ socket.on('previousMessages', (previousMessages) => {
     }
 });
 
-
-// 메시지 전송
+// 메시지 송신
 formChat.addEventListener('submit', function() {
     let text = $('#input-text');
 
@@ -305,15 +310,11 @@ formChat.addEventListener('submit', function() {
         let messageLine = $('<div class="message-line">');
         let messageBox = $('<div class="sent-text-message">');
 
-        const now = new Date();
-        const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-        const formattedDateTime = now.toLocaleString('ko-KR', options);
+        const dateBox = createAndAppendDateBox(new Date());
 
         messageBox.append(text.val());
         messageBox.css('display', 'inline-block');
         messageLine.css('text-align', 'right');
-
-        const dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
 
         socket.emit('loadNewestMessage', { roomID: roomID });
 
@@ -327,6 +328,7 @@ formChat.addEventListener('submit', function() {
     }
 });
 
+// 메시지 수신
 socket.on('RECEIVE', function(message) {
     let messageLine = $('<div class="message-line">');
     let messageBox = $('<div class="received-text-message">');
@@ -334,11 +336,7 @@ socket.on('RECEIVE', function(message) {
     let receivedRoom = roomID;
     let receivedMessage = message;
 
-    const now = new Date();
-    const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-    const formattedDateTime = now.toLocaleString('ko-KR', options);
-
-    const dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
+    const dateBox = createAndAppendDateBox(new Date());
 
     if (receivedRoom === roomID) {
         messageBox.append(receivedMessage);
@@ -400,16 +398,12 @@ function displayImages(imagePaths) {
             window.open(this.src);
         };
 
-        const now = new Date();
-        const options = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-        const formattedDateTime = now.toLocaleString('ko-KR', options);
-
         const messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
         messageBox.removeClass('received-image-message').addClass('sent-image-message');
         messageBox.css('display', 'inline-block');
         messageLine.css('text-align', 'right');
 
-        const dateBox = $('<div>').addClass('dateBox').text(formattedDateTime);
+        const dateBox = createAndAppendDateBox(new Date());
         
         socket.emit('loadNewestMessage', { roomID: roomID });
 

@@ -1,62 +1,23 @@
 const express = require('express');
+const http = require('http');
 const socket = require('socket.io');
+const chatUtils = require('./utils/chatUtils');
+const imageUtils = require('./utils/imageUtils');
+const path = require('path');
 
 const app = express();
 app.set('port', process.env.PORT || 4000);
 app.use(express.static(__dirname + '/static'));
 
-const http = require('http');
 const server = http.createServer(app);
-
-/* 기본 namespace */
 const io = socket(server);
 
 /* DB Connect */
 const connection = require('./database/connect/maria')
 connection.connect();
 
-/* 이미지 업로드 설정 */
-const multer = require('multer');
-const uuid4 = require('uuid4');
-const path = require('path');
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'static/upload'));
-    },
-    filename: (req, file, cb) => {
-        const randomID = uuid4();
-        const ext = path.extname(file.originalname);
-        const name = randomID + ext;
-        cb(null, name);
-    }
-});
-
-// 이미지 파일로 제한, 확장자를 확인하는 필터 함수
-const imageFilter = (req, file, cb) => {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif|svg)$/)) {
-        cb(new Error('이미지 파일만 업로드할 수 있습니다.'), false);
-    } else {
-        cb(null, true);
-    }
-};
-
-const upload = multer({ 
-    storage: storage,
-    fileFilter: imageFilter
-});
-
-/* 이미지 저장 함수들 */
-async function saveImageToDB(messageID, imagePath) {
-    try {
-        await connection.query("INSERT INTO chat_image (message_id, image_path) VALUES (?, ?)", [messageID, imagePath]);
-        console.log('이미지 경로를 데이터베이스에 저장했습니다.');
-    } catch (error) {
-        throw new Error('이미지 경로를 데이터베이스에 저장하는 중 오류가 발생했습니다.');
-    }
-}
-
-app.post('/upload', upload.array('imgs', 10), async (req, res) => {
+/* 이미지 업로드 */
+app.post('/upload', imageUtils.upload.array('imgs', 10), async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).send('이미지를 선택하세요.');
     }
@@ -70,20 +31,7 @@ app.post('/upload', upload.array('imgs', 10), async (req, res) => {
             const imagePath = path.join('../upload', file.filename);
             imagePaths.push(imagePath);
 
-            connection.query(
-                "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, ?, now(), 'image')",
-                [roomID, sender, receiver, imagePath],
-                async (error, results, fields) => {
-                    if (error) {
-                        console.error('이미지 정보 저장 중 오류 발생:', error);
-                        res.status(500).send('이미지 정보 저장 중 오류 발생');
-                    } else {
-                        const messageID = results.insertId; // 저장된 메시지의 ID
-                        
-                        await saveImageToDB(messageID, imagePath); // 이미지를 DB에 저장하는 함수
-                    }
-                }
-            )
+            await imageUtils.saveImageToChatMessage(roomID, sender, receiver, imagePath);
         }
 
         res.status(200).json({ imagePaths }); // JSON 응답 반환
@@ -100,38 +48,12 @@ server.listen(4000, function() {
     console.log('listening on *:4000');
 });
 
-/* test.js */
-// const test = require('./routes/test')
-// app.use("/test", test);
-
-/* 룸 ID 생성 함수 */
-function generateRoomID(sender, receiver) {
-    const sortedIDs = [sender, receiver].sort().join('-'); // 사용자 ID 정렬하여 결합
-    return sortedIDs; // 룸 ID 반환
-}
-
-/* 채팅방 생성 함수 */
-function createChatRoom(roomID) {
-    connection.query(
-        "INSERT IGNORE INTO chat_room (room_id, created_at) VALUES (?, now())",
-        [roomID],
-        (error, results, fields) => {
-            if (error) {
-                console.error('Error creating chat room:', error);
-                // 에러 핸들링 또는 적절한 조치
-            } else {
-                console.log('Chat room created successfully');
-            }
-        }
-    );
-}
-
 io.on('connection', (socket) => {
     socket.on("LOGIN", async (sender, receiver)=>{
         console.log(sender, receiver);
 
         // 클라이언트로 roomID 전송
-        const roomID = generateRoomID(sender, receiver);
+        const roomID = chatUtils.generateRoomID(sender, receiver);
 
         // 현재 소켓의 모든 룸을 나가고 새로운 룸에 조인
         Object.keys(socket.rooms).forEach((room) => {
@@ -280,7 +202,7 @@ io.on('connection', (socket) => {
         console.log('Message received: ' + message);
         console.log(messageData);
         
-        createChatRoom(roomID);
+        chatUtils.createChatRoom(roomID);
 
         // socket.to(방이름).emit으로 특정 방의 소켓들에게 신호를 보낼 수 있다.
         socket.to(roomID).emit('RECEIVE', message, roomID);
