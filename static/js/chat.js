@@ -9,6 +9,8 @@ let roomID;
 let cursor = null;
 let perPage = 30; // 페이지당 보여줄 메시지 수
 
+let lastMessageTime;
+
 /////////////////////////////////////////////////////////
 
 let socket = io();
@@ -49,7 +51,7 @@ function compareDatesWithoutTime(dateA, dateB) {
            dateA.getDate() === dateB.getDate();
 }
 
-// 날짜 라벨
+// 날짜 라벨 (메시지 불러올 시)
 function createDateLabel(date, prepend = false) {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateLabel = $('<div>').addClass('date-label').text(date.toLocaleDateString('ko-KR', options));
@@ -58,6 +60,19 @@ function createDateLabel(date, prepend = false) {
         messageContainer.prepend(dateLabel);
     } else {
         messageContainer.append(dateLabel);
+    }
+}
+
+// 날짜 라벨 (메시지 or 이미지 송신 시)
+function createMessageExchangeLabel() {
+    newestMessageDate = new Date(newestMessageTime);
+    messageCommunicationDate = new Date();
+
+    // 연도, 월, 일을 비교하여 같은지 확인
+    const isSameDate = compareDatesWithoutTime(newestMessageDate, messageCommunicationDate);
+
+    if (!isSameDate) {
+        createDateLabel(messageCommunicationDate);
     }
 }
 
@@ -133,6 +148,8 @@ function displayImages(imagePaths) {
             window.open(this.src);
         };
 
+        createMessageExchangeLabel();
+
         const messageBox = $('<div>').addClass('received-image-message').append(imgWrapper);
         messageBox.removeClass('received-image-message').addClass('sent-image-message');
         messageBox.css('display', 'inline-block');
@@ -168,10 +185,6 @@ function uploadImages(images) {
         if (xhr.readyState === 4 && xhr.status === 200) {
             const data = JSON.parse(xhr.responseText);
             displayImages(data.imagePaths); // 이미지를 표시하는 함수 호출
-        } else {
-            // 오류 응답 처리
-            const errorMessage = xhr.responseText;
-            displayErrorMessage(errorMessage); // 사용자에게 오류 메시지 표시
         }
     };
 
@@ -198,20 +211,6 @@ socket.on('newestMessage', (data) => {
 
     if(!compareDatesWithoutTime(now, newestMessageDate)) {
         createDateLabel(newestMessageDate);
-    }
-});
-
-// 에러 표시 (json)
-function displayErrorMessage(errorMessage) {
-    if (confirm(errorMessage + "\n페이지를 새로고침하시겠습니까?")) {
-        location.reload();
-    }
-}
-
-// 에러 표시 (socket)
-socket.on('errorOccurred', (errorMessage) => {
-    if (confirm(errorMessage + "\n페이지를 새로고침하시겠습니까?")) {
-        location.reload();
     }
 });
 
@@ -252,7 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('receiver').innerText = receiver;
 });
-
 
 // 채팅방 입장 시 이전 대화 내역 출력
 socket.on('initialChatLoad', (messages) => {
@@ -302,6 +300,11 @@ socket.on('initialChatLoad', (messages) => {
 
         // 초기 메시지 중 가장 오래된 메시지의 날짜 데이터 추출
         oldestMessageTime = messages[messages.length - perPage].created_at;
+        console.log("oldestMessageTime", oldestMessageTime);
+
+        // 초기 메시지 중 가장 최신 메시지의 날짜 데이터 추출
+        newestMessageTime = messages[messages.length - 1].created_at;
+        console.log("newestMessageTime", newestMessageTime);
 
     } else {
         // 대화 내역이 없는 경우
@@ -394,6 +397,9 @@ formChat.addEventListener('submit', function() {
 
         socket.emit('sendMessage', messageData);
 
+        // 날짜 라벨 추가
+        messageCommunicationLabel();
+
         let messageLine = $('<div class="message-line">');
         let messageBox = $('<div class="sent-text-message">');
 
@@ -410,6 +416,7 @@ formChat.addEventListener('submit', function() {
         $('#message').append(messageLine);
         text.val('');
         $('.chat').animate({ scrollTop: $('.chat')[0].scrollHeight }, 'slow');
+
     }
 });
 
@@ -424,6 +431,10 @@ socket.on('RECEIVE', function(message) {
     const dateBox = createAndAppendDateBox(new Date());
 
     if (receivedRoom === roomID) {
+
+        // 날짜 라벨 추가
+        messageCommunicationLabel()
+
         messageBox.append(receivedMessage);
         messageBox.css('display', 'inline-block');
 
@@ -434,6 +445,7 @@ socket.on('RECEIVE', function(message) {
 
         $('.chat').animate({ scrollTop: $('.chat')[0].scrollHeight }, 'slow');
     }
+
 });
 
 // 이미지 송신

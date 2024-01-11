@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
             FROM chat_message cm 
             LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
             WHERE room_id = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, message_id DESC
             LIMIT ?
         ) AS sub
         ORDER BY created_at ASC`
@@ -108,7 +108,7 @@ io.on('connection', (socket) => {
             SELECT created_at
             FROM chat_message
             WHERE room_id = ?
-            ORDER BY created_at ASC
+            ORDER BY created_at ASC, message_id ASC
             LIMIT 1
         `;
         
@@ -134,7 +134,7 @@ io.on('connection', (socket) => {
             SELECT created_at
             FROM chat_message
             WHERE room_id = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, message_id DESC
             LIMIT 1
         `;
         
@@ -157,10 +157,16 @@ io.on('connection', (socket) => {
         const roomID = data.roomID;
         const perPage = 30; // 페이지당 보여줄 메시지 수
         const cursor = data.cursor ? new Date(data.cursor) : null;
+        const query = 
+        `SELECT message_id, created_at
+        FROM chat_message
+        WHERE room_id = ?
+        ORDER BY created_at DESC, message_id DESC
+        LIMIT ?`;
     
         // 1. 가장 최근 데이터 perPage만큼 조회
         connection.query(
-            `SELECT message_id, created_at FROM chat_message WHERE room_id = ? ORDER BY created_at DESC LIMIT ?`,
+            query,
             [roomID, perPage],
             (error, results, fields) => {
                 if (error) {
@@ -172,7 +178,8 @@ io.on('connection', (socket) => {
                     let query = `
                         SELECT cm.message_id, cm.message, cm.sender, cm.receiver, cm.created_at, cm.type 
                         FROM chat_message cm 
-                        LEFT JOIN chat_image ci ON cm.message_id = ci.message_id 
+                        LEFT JOIN chat_image ci
+                        ON cm.message_id = ci.message_id 
                         WHERE room_id = ?`;
     
                     let params = [roomID];
@@ -186,7 +193,7 @@ io.on('connection', (socket) => {
                         params.push(recentMessageIDs);
                     }
     
-                    query += ` ORDER BY cm.created_at DESC LIMIT ?`;
+                    query += ` ORDER BY cm.created_at DESC, cm.message_id DESC LIMIT ?`;
                     params.push(perPage);
     
                     connection.query(
@@ -212,7 +219,8 @@ io.on('connection', (socket) => {
     socket.on('messageRead', (messageID) => {
         const query = 
         `UPDATE chat_message
-        SET read_or_not = 'read'
+        SET read_or_not = 'read',
+        created_at = created_at
         WHERE message_id = ?`;
 
         console.log('Message ID:', messageID);
@@ -245,8 +253,11 @@ io.on('connection', (socket) => {
         socket.to(roomID).emit('RECEIVE', message, roomID);
     
         // DB에 INSERT (parameterized query 사용)
+        const query = 
+        `INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type)
+        VALUES (?, ?, ?, ?, now(), 'text')`
         connection.query(
-            "INSERT INTO chat_message (room_id, sender, receiver, message, created_at, type) VALUES (?, ?, ?, ?, now(), 'text')",
+            query,
             [roomID, sender, receiver, message],
             (error, results, fields) => {
                 if (error) {
